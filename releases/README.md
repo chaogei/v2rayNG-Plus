@@ -6,8 +6,10 @@
 
 | 文件 | Variant | ABI | 大小 | SHA256 |
 | --- | --- | --- | --- | --- |
-| `v2rayNG-glass-fdroid-arm64-debug.apk` | fdroidDebug | arm64-v8a | 40,784,727 字节（约 39 MB） | `35da0a94f9e39b2842539942ab965044dee8c69f5a7b5c1feca81030662bd147` |
-| `v2rayNG-glass-fdroid-universal-debug.apk` | fdroidDebug | universal（arm64-v8a + armeabi-v7a + x86 + x86_64） | 97,705,415 字节（约 93 MB） | `f61e3cf9137520b856c0b74c760a25110d21846cc7a0cfe1f4678db46c12ba5a` |
+| `v2rayNG-glass-fdroid-arm64-debug.apk` | fdroidDebug | arm64-v8a | 40,794,531 字节（约 39 MB） | `422dcc046010cd51b4b41d00f3634e7b2294eb16ce485b32546f347ae4d9d24c` |
+| `v2rayNG-glass-fdroid-universal-debug.apk` | fdroidDebug | universal（arm64-v8a + armeabi-v7a + x86 + x86_64） | 97,715,215 字节（约 93 MB） | `92809b1f9daa49a49a2e7d1de84e5ef687850d028d10c63622190d27b7694ecd` |
+
+> 当前 APK 已包含 UI 交互与细节打磨（间距 token、选中/按压反馈、48dp 触控热区、空状态、FAB 防抖、主题切换过渡），详见仓库 README「交互与细节打磨」。
 
 **绝大多数近年的手机选 arm64 版即可**；不确定 CPU 架构或要装到模拟器/旧设备时用 universal 版。
 
