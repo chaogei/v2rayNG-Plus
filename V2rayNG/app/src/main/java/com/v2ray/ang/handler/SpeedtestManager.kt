@@ -57,8 +57,7 @@ object SpeedtestManager {
         val url = MmkvManager.decodeSettingsString(AppConfig.PREF_IP_API_URL)
             .takeIf { !it.isNullOrBlank() } ?: AppConfig.IP_API_URL
 
-        val proxyUsername = SettingsManager.getSocksUsername()
-        val proxyPassword = SettingsManager.getSocksPassword()
+        val (proxyUsername, proxyPassword) = SettingsManager.getLocalAuthCredentials() ?: (null to null)
         val httpPort = SettingsManager.getHttpPort()
         if (httpPort == 0) return null
         val content = HttpUtil.getUrlContent(
