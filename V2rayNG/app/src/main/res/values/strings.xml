@@ -271,13 +271,16 @@
     </string-array>
     <string name="title_pref_http_port">Local HTTP port</string>
     <string name="title_pref_local_auth_enabled">Local proxy authentication</string>
-    <string name="summary_pref_local_auth_enabled">Require username/password on the local inbounds (SOCKS user/pass and HTTP basic auth). Set both fields below, otherwise no authentication is applied</string>
+    <string name="summary_pref_local_auth_enabled">Require username/password on the SOCKS and HTTP inbounds (SOCKS user/pass and HTTP basic auth). The transparent proxy inbound (dokodemo-door) has no accounts and is never covered, which is why it only listens on 127.0.0.1</string>
+    <string name="summary_pref_local_auth_incomplete">Not in effect: set both the username and the password below, otherwise the local inbounds stay unauthenticated</string>
     <string name="title_pref_local_redir_enabled">Transparent proxy inbound (dokodemo-door)</string>
-    <string name="summary_pref_local_redir_enabled">Open an extra transparent redirect inbound. Traffic must be redirected to this port externally (e.g. iptables REDIRECT), which usually requires root</string>
+    <string name="summary_pref_local_redir_enabled">Open an extra transparent redirect inbound on 127.0.0.1. Traffic must be redirected to this port externally (e.g. iptables REDIRECT), which usually requires root</string>
+    <string name="summary_pref_local_redir_conflict">Not in effect: the port below collides with another local inbound port, so the configuration is rejected</string>
     <string name="title_pref_local_redir_port">Transparent proxy port</string>
     <string name="toast_invalid_local_port">Invalid port: use a number between 1 and 65535</string>
     <string name="toast_local_port_conflict">Port conflicts with another local inbound port</string>
     <string name="toast_local_auth_credentials_missing">Set both username and password, otherwise local authentication stays disabled</string>
+    <string name="toast_http_port_normalized">The HTTP port matched the SOCKS port and was changed to %1$d</string>
 
     <string name="title_pref_local_dns_port">Local DNS port</string>
     <string name="summary_pref_local_dns_port">Local DNS port</string>

@@ -601,25 +601,30 @@ object CoreConfigManager {
         // usually requires root.
         if (enableLocalProxy && inbound.redirEnabled) {
             val redirPort = inbound.redirPort
-            val portInUse = v2rayConfig.inbounds.any { it.port == redirPort }
-            if (portInUse) {
-                LogUtil.w(AppConfig.TAG, "Transparent redirect port $redirPort conflicts with another local inbound, skipping redir inbound")
-            } else {
-                v2rayConfig.inbounds.add(
-                    V2rayConfig.InboundBean(
-                        tag = AppConfig.TAG_REDIR_INBOUND,
-                        port = redirPort,
-                        protocol = AppConfig.PROTOCOL_DOKODEMO,
-                        listen = inbound.listenAddress,
-                        settings = V2rayConfig.InboundBean.InSettingsBean(
-                            network = "tcp,udp",
-                            followRedirect = true,
-                            userLevel = socksSettings.userLevel
-                        ),
-                        sniffing = copySniffing(inboundSocks.sniffing)
-                    )
-                )
+            // Skipping the inbound silently used to leave the toggle looking enabled while
+            // nothing listened on the port, with the only trace in logcat. Fail the start
+            // instead so the reason reaches the user.
+            if (v2rayConfig.inbounds.any { it.port == redirPort }) {
+                error("Transparent redirect port $redirPort conflicts with another local inbound port")
             }
+            v2rayConfig.inbounds.add(
+                V2rayConfig.InboundBean(
+                    tag = AppConfig.TAG_REDIR_INBOUND,
+                    port = redirPort,
+                    protocol = AppConfig.PROTOCOL_DOKODEMO,
+                    // dokodemo-door has no account mechanism, so the local auth credentials
+                    // cannot protect it. Binding it to 0.0.0.0 along with the other inbounds
+                    // would publish an unauthenticated inbound on the LAN; the redirect it
+                    // serves is installed locally (iptables REDIRECT) and reaches it here.
+                    listen = AppConfig.LOOPBACK,
+                    settings = V2rayConfig.InboundBean.InSettingsBean(
+                        network = "tcp,udp",
+                        followRedirect = true,
+                        userLevel = socksSettings.userLevel
+                    ),
+                    sniffing = copySniffing(inboundSocks.sniffing)
+                )
+            )
         }
 
         if (!enableLocalProxy) {

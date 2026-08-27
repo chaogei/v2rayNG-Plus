@@ -169,6 +169,13 @@ fun SettingsScreen(
     val socksPortInt = socksPort.trim().toIntOrNull() ?: AppConfig.PORT_SOCKS.toInt()
     val httpPortInt = httpPort.trim().toIntOrNull() ?: AppConfig.PORT_HTTP.toInt()
     val redirPortInt = localRedirPort.trim().toIntOrNull() ?: AppConfig.PORT_REDIR.toInt()
+    // The switch alone says nothing about whether authentication is actually applied:
+    // config generation drops it whenever either credential is empty.
+    val localAuthInEffect = socksUsername.isNotBlank() && socksPassword.isNotBlank()
+    // Same for the transparent inbound: a port collision makes the core config fail, so the
+    // row has to say so instead of leaving the switch looking enabled.
+    val redirPortConflicts = redirPortInt == socksPortInt
+            || (modeHasSeparateHttpPort && redirPortInt == httpPortInt)
 
     val dynamicColorSupported = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
     LaunchedEffect(dynamicColorSupported) {
@@ -443,7 +450,14 @@ fun SettingsScreen(
                     values = localInboundModeValues,
                     selectedValue = localInboundMode,
                     enabled = effectiveLocalProxy,
-                    onSelected = { localInboundMode = it }
+                    onSelected = {
+                        localInboundMode = it
+                        viewModel.normalizeHttpPortOnModeChange(
+                            LocalInboundMode.fromValue(it),
+                            socksPortInt,
+                            httpPortInt
+                        )?.let { port -> httpPort = port.toString() }
+                    }
                 )
                 SettingsListItem(
                     title = stringResource(R.string.title_pref_local_listen_address),
@@ -490,7 +504,11 @@ fun SettingsScreen(
                 )
                 SettingsSwitchItem(
                     title = stringResource(R.string.title_pref_local_auth_enabled),
-                    summary = stringResource(R.string.summary_pref_local_auth_enabled),
+                    summary = if (localAuthEnabled && !localAuthInEffect) {
+                        stringResource(R.string.summary_pref_local_auth_incomplete)
+                    } else {
+                        stringResource(R.string.summary_pref_local_auth_enabled)
+                    },
                     checked = localAuthEnabled,
                     enabled = effectiveLocalProxy,
                     onCheckedChange = {
@@ -504,14 +522,27 @@ fun SettingsScreen(
                     title = stringResource(R.string.title_pref_socks_username),
                     value = socksUsername,
                     enabled = effectiveLocalProxy && localAuthEnabled,
-                    onValueChanged = { socksUsername = it }
+                    onValueChanged = {
+                        socksUsername = it
+                        // Clearing a credential silently downgrades the inbounds to noauth
+                        // while the switch above stays on, so warn on every edit, not only
+                        // when the switch is flipped.
+                        if (localAuthEnabled) {
+                            viewModel.warnIfLocalAuthCredentialsMissing(it, socksPassword)
+                        }
+                    }
                 )
                 SettingsEditItem(
                     title = stringResource(R.string.title_pref_socks_password),
                     value = socksPassword,
                     enabled = effectiveLocalProxy && localAuthEnabled,
                     isPassword = true,
-                    onValueChanged = { socksPassword = it }
+                    onValueChanged = {
+                        socksPassword = it
+                        if (localAuthEnabled) {
+                            viewModel.warnIfLocalAuthCredentialsMissing(socksUsername, it)
+                        }
+                    }
                 )
                 SettingsSwitchItem(
                     title = stringResource(R.string.title_pref_socks_enable_udp),
@@ -522,7 +553,11 @@ fun SettingsScreen(
                 )
                 SettingsSwitchItem(
                     title = stringResource(R.string.title_pref_local_redir_enabled),
-                    summary = stringResource(R.string.summary_pref_local_redir_enabled),
+                    summary = if (localRedirEnabled && redirPortConflicts) {
+                        stringResource(R.string.summary_pref_local_redir_conflict)
+                    } else {
+                        stringResource(R.string.summary_pref_local_redir_enabled)
+                    },
                     checked = localRedirEnabled,
                     enabled = effectiveLocalProxy,
                     onCheckedChange = { localRedirEnabled = it }

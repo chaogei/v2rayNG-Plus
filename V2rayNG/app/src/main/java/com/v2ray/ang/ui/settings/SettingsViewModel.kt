@@ -3,6 +3,8 @@ package com.v2ray.ang.ui.settings
 import android.app.Application
 import com.v2ray.ang.AppConfig
 import com.v2ray.ang.R
+import com.v2ray.ang.dto.LocalInboundSnapshot
+import com.v2ray.ang.enums.LocalInboundMode
 import com.v2ray.ang.root.RootManager
 import com.v2ray.ang.ui.base.BaseViewModel
 import kotlinx.coroutines.Dispatchers
@@ -81,11 +83,33 @@ class SettingsViewModel(application: Application) : BaseViewModel(application) {
     }
 
     /**
-     * Warns when local auth is switched on while credentials are incomplete.
+     * Warns while the local auth credentials are incomplete: the toggle stays on but
+     * config generation falls back to "noauth" until both fields are filled in.
      */
     fun warnIfLocalAuthCredentialsMissing(username: String, password: String) {
         if (username.isBlank() || password.isBlank()) {
             toastError(R.string.toast_local_auth_credentials_missing)
         }
+    }
+
+    /**
+     * Resolve an HTTP/SOCKS port collision when a local inbound mode with a dedicated HTTP
+     * port is selected.
+     *
+     * Modes without one leave the HTTP port field disabled and out of the conflict
+     * validation, so a mode that has one can be entered with both ports equal. Config
+     * generation resolves that to the neighbour port on its own, leaving the settings screen
+     * showing a port nothing listens on.
+     *
+     * @return the port to store, or null when the current one is fine.
+     */
+    fun normalizeHttpPortOnModeChange(mode: LocalInboundMode, socksPort: Int, httpPort: Int): Int? {
+        val hasSeparateHttpPort = mode == LocalInboundMode.SOCKS_HTTP || mode == LocalInboundMode.HTTP
+        if (!hasSeparateHttpPort || httpPort != socksPort) {
+            return null
+        }
+        val normalized = LocalInboundSnapshot.neighborPort(socksPort)
+        toast(getString(R.string.toast_http_port_normalized, normalized))
+        return normalized
     }
 }

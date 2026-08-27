@@ -271,13 +271,16 @@
     </string-array>
     <string name="title_pref_http_port">本地 HTTP 端口</string>
     <string name="title_pref_local_auth_enabled">本地代理认证</string>
-    <string name="summary_pref_local_auth_enabled">为本地入站启用用户名/密码认证（SOCKS 用户名密码 + HTTP Basic）。需同时填写下方两项，否则不启用认证</string>
+    <string name="summary_pref_local_auth_enabled">为 SOCKS 与 HTTP 入站启用用户名/密码认证（SOCKS 用户名密码 + HTTP Basic）。透明代理入站（dokodemo-door）没有账号机制，不受此开关保护，因此它只监听 127.0.0.1</string>
+    <string name="summary_pref_local_auth_incomplete">未生效：需同时填写下方的用户名和密码，否则本地入站仍然无认证</string>
     <string name="title_pref_local_redir_enabled">透明代理入站（dokodemo-door）</string>
-    <string name="summary_pref_local_redir_enabled">额外开启一个透明转发入站，需要用 iptables REDIRECT 等方式将流量重定向到此端口（通常需要 root）</string>
+    <string name="summary_pref_local_redir_enabled">在 127.0.0.1 上额外开启一个透明转发入站，需要用 iptables REDIRECT 等方式将流量重定向到此端口（通常需要 root）</string>
+    <string name="summary_pref_local_redir_conflict">未生效：下方端口与其他本地入站端口冲突，配置会被拒绝</string>
     <string name="title_pref_local_redir_port">透明代理端口</string>
     <string name="toast_invalid_local_port">端口无效：请输入 1-65535 之间的数字</string>
     <string name="toast_local_port_conflict">端口与其他本地入站端口冲突</string>
     <string name="toast_local_auth_credentials_missing">需同时设置用户名和密码，否则本地认证不会生效</string>
+    <string name="toast_http_port_normalized">HTTP 端口与 SOCKS 端口相同，已改为 %1$d</string>
 
     <string name="title_pref_local_dns_port">本地 DNS 端口</string>
     <string name="summary_pref_local_dns_port">本地 DNS 端口</string>
