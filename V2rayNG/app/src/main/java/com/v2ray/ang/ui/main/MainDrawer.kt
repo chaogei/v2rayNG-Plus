@@ -32,6 +32,7 @@ import androidx.compose.ui.unit.dp
 import com.v2ray.ang.R
 import com.v2ray.ang.ui.compose.AppDivider
 import com.v2ray.ang.ui.compose.LocalDarkTheme
+import com.v2ray.ang.ui.compose.glassOverlayColor
 import com.v2ray.ang.ui.compose.verticalScrollbar
 
 enum class MainDestination(@DrawableRes val iconRes: Int, @StringRes val labelRes: Int) {
@@ -70,7 +71,8 @@ fun MainDrawerContent(drawerState: DrawerState, onNavigate: (MainDestination) ->
     ModalDrawerSheet(
         drawerState = drawerState,
         modifier = Modifier.fillMaxWidth(0.75f),
-        drawerContainerColor = MaterialTheme.colorScheme.surface
+        drawerShape = MaterialTheme.shapes.large,
+        drawerContainerColor = glassOverlayColor()
     ) {
         Column(
             modifier = Modifier
@@ -80,7 +82,8 @@ fun MainDrawerContent(drawerState: DrawerState, onNavigate: (MainDestination) ->
             Surface(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(180.dp)
+                    .height(180.dp),
+                color = Color.Transparent
             ) {
                 Column(
                     modifier = Modifier

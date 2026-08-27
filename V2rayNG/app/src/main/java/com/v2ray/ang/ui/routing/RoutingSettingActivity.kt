@@ -53,13 +53,14 @@ import com.v2ray.ang.handler.SettingsManager
 import com.v2ray.ang.ui.base.HelperBaseComponentActivity
 import com.v2ray.ang.ui.compose.AppDropdownMenuItems
 import com.v2ray.ang.ui.compose.AppTopBar
-import com.v2ray.ang.ui.compose.ItemDivider
 import com.v2ray.ang.ui.compose.ReorderableListItem
 import com.v2ray.ang.ui.compose.SelectListDialog
 import com.v2ray.ang.ui.compose.SettingsListItem
 import com.v2ray.ang.ui.compose.colorConfigType
 import com.v2ray.ang.ui.compose.colorFabActive
 import com.v2ray.ang.ui.compose.NavigationBarsBottomPadding
+import com.v2ray.ang.ui.compose.glassBorder
+import com.v2ray.ang.ui.compose.glassOverlayColor
 import com.v2ray.ang.ui.compose.verticalScrollbar
 import com.v2ray.ang.util.JsonUtil
 import com.v2ray.ang.util.LogUtil
@@ -239,7 +240,9 @@ fun RoutingSettingScreen(
                         DropdownMenu(
                             expanded = showMenu,
                             onDismissRequest = { showMenu = false },
-                            containerColor = MaterialTheme.colorScheme.surface
+                            shape = MaterialTheme.shapes.large,
+                            containerColor = glassOverlayColor(),
+                            border = glassBorder()
                         ) {
                             AppDropdownMenuItems(RoutingMenuAction.entries, { it.labelRes }) { action ->
                                 showMenu = false
@@ -288,7 +291,8 @@ fun RoutingSettingScreen(
                 ReorderableItem(reorderableState, key = ruleset.id) { isDragging ->
                     ReorderableListItem(
                         scope = this,
-                        isDragging = isDragging
+                        isDragging = isDragging,
+                        glass = true
                     ) {
                         RoutingRulesetItem(
                             ruleset = ruleset,
@@ -299,7 +303,6 @@ fun RoutingSettingScreen(
                             }
                         )
                     }
-                    ItemDivider()
                 }
             }
         }

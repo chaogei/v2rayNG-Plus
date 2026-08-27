@@ -36,6 +36,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.stateDescription
@@ -54,12 +55,13 @@ import com.v2ray.ang.extension.isComplexType
 import com.v2ray.ang.extension.nullIfBlank
 import com.v2ray.ang.handler.AngConfigManager
 import com.v2ray.ang.handler.MmkvManager
-import com.v2ray.ang.ui.compose.ItemDivider
 import com.v2ray.ang.ui.compose.ReorderableGridItem
 import com.v2ray.ang.ui.compose.ReorderableListItem
 import com.v2ray.ang.ui.compose.colorConfigType
 import com.v2ray.ang.ui.compose.colorPing
 import com.v2ray.ang.ui.compose.colorPingRed
+import com.v2ray.ang.ui.compose.glassBorderBrush
+import com.v2ray.ang.ui.compose.glassPanel
 import com.v2ray.ang.ui.compose.verticalScrollbar
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyGridState
@@ -221,7 +223,6 @@ private fun ServerListPage(
                                 onRemoveServer = onRemoveServer
                             )
                         }
-                        ItemDivider()
                     }
                 } else {
                     ServerItemRow(
@@ -234,7 +235,6 @@ private fun ServerListPage(
                         onMoreServer = onMoreServer,
                         onRemoveServer = onRemoveServer
                     )
-                    ItemDivider()
                 }
             }
         }
@@ -290,21 +290,47 @@ private fun ServerItemRow(
             ?.toString() ?: ""
     } else ""
 
-    ServerListItem(
-        remarks = profile.remarks,
-        statistics = profile.description.nullIfBlank()
-            ?: AngConfigManager.generateDescription(profile),
-        typeDescription = getProtocolDescription(profile),
-        testDelayMillis = serverCache.testDelayMillis,
-        isSelected = serverCache.guid == selectedGuid,
-        subscriptionRemarks = subRemarks,
-        doubleColumnDisplay = false,
-        onClick = { onSelectServer(serverCache.guid) },
-        onShare = { onShareServer(serverCache.guid, profile) },
-        onEdit = { onEditServer(serverCache.guid, profile) },
-        onRemove = { onRemoveServer(serverCache.guid) },
-        onMore = { onMoreServer(serverCache.guid, profile) }
-    )
+    GlassServerCard(isSelected = serverCache.guid == selectedGuid) {
+        ServerListItem(
+            remarks = profile.remarks,
+            statistics = profile.description.nullIfBlank()
+                ?: AngConfigManager.generateDescription(profile),
+            typeDescription = getProtocolDescription(profile),
+            testDelayMillis = serverCache.testDelayMillis,
+            isSelected = serverCache.guid == selectedGuid,
+            subscriptionRemarks = subRemarks,
+            doubleColumnDisplay = false,
+            onClick = { onSelectServer(serverCache.guid) },
+            onShare = { onShareServer(serverCache.guid, profile) },
+            onEdit = { onEditServer(serverCache.guid, profile) },
+            onRemove = { onRemoveServer(serverCache.guid) },
+            onMore = { onMoreServer(serverCache.guid, profile) }
+        )
+    }
+}
+
+/**
+ * Frosted card wrapper for a server entry. The selected server additionally
+ * gets an accent-tinted border so it stands out beyond the small indicator.
+ */
+@Composable
+private fun GlassServerCard(
+    isSelected: Boolean,
+    content: @Composable () -> Unit
+) {
+    val borderBrush = if (isSelected) {
+        SolidColor(MaterialTheme.colorScheme.secondary.copy(alpha = 0.55f))
+    } else {
+        glassBorderBrush()
+    }
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 10.dp, vertical = 4.dp)
+            .glassPanel(fill = MaterialTheme.colorScheme.surfaceContainerLow, borderBrush = borderBrush)
+    ) {
+        content()
+    }
 }
 
 @Composable
@@ -323,7 +349,7 @@ private fun ServerItemColumn(
     val subRemarks = if (subscriptionId.isEmpty()) {
         MmkvManager.decodeSubscription(profile.subscriptionId)?.remarks?.firstOrNull()?.toString() ?: ""
     } else ""
-    Column {
+    GlassServerCard(isSelected = serverCache.guid == selectedGuid) {
         ServerListItem(
             remarks = profile.remarks,
             statistics = profile.description.nullIfBlank() ?: AngConfigManager.generateDescription(profile),
@@ -338,7 +364,6 @@ private fun ServerItemColumn(
             onRemove = { onRemoveServer(serverCache.guid) },
             onMore = { onMoreServer(serverCache.guid, profile) }
         )
-        ItemDivider()
     }
 }
 

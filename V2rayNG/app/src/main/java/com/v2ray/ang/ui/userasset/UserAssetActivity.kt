@@ -55,9 +55,11 @@ import com.v2ray.ang.ui.base.HelperBaseComponentActivity
 import com.v2ray.ang.ui.compose.AppDropdownMenuItems
 import com.v2ray.ang.ui.compose.AppTopBar
 import com.v2ray.ang.ui.compose.DeleteConfirmDialog
-import com.v2ray.ang.ui.compose.ItemDivider
+import com.v2ray.ang.ui.compose.GlassListCard
 import com.v2ray.ang.ui.compose.SettingsListItem
 import com.v2ray.ang.ui.compose.NavigationBarsBottomPadding
+import com.v2ray.ang.ui.compose.glassBorder
+import com.v2ray.ang.ui.compose.glassOverlayColor
 import com.v2ray.ang.ui.compose.verticalScrollbar
 import com.v2ray.ang.util.LogUtil
 import com.v2ray.ang.util.Utils
@@ -274,7 +276,9 @@ internal fun UserAssetScreen(
                         DropdownMenu(
                             expanded = showAddMenu,
                             onDismissRequest = { showAddMenu = false },
-                            containerColor = MaterialTheme.colorScheme.surface,
+                            shape = MaterialTheme.shapes.large,
+                            containerColor = glassOverlayColor(),
+                            border = glassBorder(),
                             offset = DpOffset(x = 0.dp, y = 0.dp),
                             modifier = Modifier.wrapContentWidth(Alignment.End)
                         ) {
@@ -320,15 +324,16 @@ internal fun UserAssetScreen(
                 )
             }
             itemsIndexed(items = uiState.assets, key = { _, item -> item.guid }) { _, item ->
-                UserAssetItem(
-                    item = item,
-                    fileMetadata = uiState.fileMetadata[item.guid],
-                    onEdit = { onEditAsset(item.guid) },
-                    onDeleteClick = {
-                        deleteTarget = AssetDeleteTarget(item.guid, item.assetUrl.remarks)
-                    }
-                )
-                ItemDivider()
+                GlassListCard(modifier = Modifier.fillMaxWidth()) {
+                    UserAssetItem(
+                        item = item,
+                        fileMetadata = uiState.fileMetadata[item.guid],
+                        onEdit = { onEditAsset(item.guid) },
+                        onDeleteClick = {
+                            deleteTarget = AssetDeleteTarget(item.guid, item.assetUrl.remarks)
+                        }
+                    )
+                }
             }
         }
     }

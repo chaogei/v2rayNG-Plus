@@ -133,7 +133,9 @@ fun FormDropdownField(
             onDismissRequest = { expanded = false },
             modifier = Modifier.verticalScrollbar(menuScrollState),
             scrollState = menuScrollState,
-            containerColor = MaterialTheme.colorScheme.surface
+            shape = MaterialTheme.shapes.large,
+            containerColor = glassOverlayColor(),
+            border = glassBorder()
         ) {
             options.forEach { option ->
                 DropdownMenuItem(

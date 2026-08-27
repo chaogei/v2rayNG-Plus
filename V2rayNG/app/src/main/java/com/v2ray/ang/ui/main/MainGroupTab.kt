@@ -31,7 +31,7 @@ fun GroupTabBar(
     PrimaryScrollableTabRow(
         selectedTabIndex = selectedTabIndex.coerceIn(0, groups.lastIndex),
         modifier = modifier.fillMaxWidth(),
-        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
+        containerColor = MaterialTheme.colorScheme.surface,
         contentColor = MaterialTheme.colorScheme.onSurface,
         edgePadding = 16.dp,
         minTabWidth = 56.dp,

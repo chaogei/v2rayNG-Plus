@@ -48,8 +48,9 @@ import com.v2ray.ang.ui.compose.AppDivider
 import com.v2ray.ang.ui.compose.AppDropdownMenuItems
 import com.v2ray.ang.ui.compose.AppListItem
 import com.v2ray.ang.ui.compose.AppTopBar
-import com.v2ray.ang.ui.compose.ItemDivider
 import com.v2ray.ang.ui.compose.colorFabActive
+import com.v2ray.ang.ui.compose.glassBorder
+import com.v2ray.ang.ui.compose.glassOverlayColor
 import com.v2ray.ang.ui.compose.NavigationBarsBottomPadding
 import com.v2ray.ang.ui.compose.verticalScrollbar
 import com.v2ray.ang.util.Utils
@@ -175,7 +176,9 @@ fun PerAppProxyScreen(
                         DropdownMenu(
                             expanded = showMenu,
                             onDismissRequest = { showMenu = false },
-                            containerColor = MaterialTheme.colorScheme.surface
+                            shape = MaterialTheme.shapes.large,
+                            containerColor = glassOverlayColor(),
+                            border = glassBorder()
                         ) {
                             AppDropdownMenuItems(PerAppMenuAction.entries, { it.labelRes }) { action ->
                                 showMenu = false
@@ -277,7 +280,6 @@ fun PerAppProxyScreen(
                         checked = checked,
                         onCheckedChange = { onToggleApp(app.packageName) }
                     )
-                    ItemDivider()
                 }
             }
         }

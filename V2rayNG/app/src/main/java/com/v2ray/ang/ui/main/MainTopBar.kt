@@ -25,6 +25,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.v2ray.ang.R
 import com.v2ray.ang.ui.compose.AppTopBar
+import com.v2ray.ang.ui.compose.glassBorder
+import com.v2ray.ang.ui.compose.glassOverlayColor
 import com.v2ray.ang.ui.compose.verticalScrollbar
 
 @Composable
@@ -81,7 +83,9 @@ fun MainTopBar(
                     expanded = showImportMenu,
                     onDismissRequest = { showImportMenu = false },
                     scrollState = importMenuScrollState,
-                    containerColor = MaterialTheme.colorScheme.surface,
+                    shape = MaterialTheme.shapes.large,
+                    containerColor = glassOverlayColor(),
+                    border = glassBorder(),
                     modifier = Modifier
                         .heightIn(max = maxMenuHeight)
                         .verticalScrollbar(importMenuScrollState)
@@ -102,7 +106,9 @@ fun MainTopBar(
                     expanded = showMenu,
                     onDismissRequest = { showMenu = false },
                     scrollState = moreMenuScrollState,
-                    containerColor = MaterialTheme.colorScheme.surface,
+                    shape = MaterialTheme.shapes.large,
+                    containerColor = glassOverlayColor(),
+                    border = glassBorder(),
                     modifier = Modifier
                         .heightIn(max = maxMenuHeight)
                         .verticalScrollbar(moreMenuScrollState)

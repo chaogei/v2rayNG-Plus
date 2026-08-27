@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Dark window backdrop matching the Compose glass gradient. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android">
+    <gradient
+        android:angle="-45"
+        android:startColor="#FF12161F"
+        android:centerColor="#FF151621"
+        android:endColor="#FF191522"
+        android:type="linear" />
+</shape>

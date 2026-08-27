@@ -168,6 +168,8 @@ fun AppTheme(
 ) {
     val dynamicColor by ThemeManager.dynamicColorEnabled.collectAsState()
     val context = LocalContext.current
+    // The base scheme (static or dynamic) is turned into its translucent
+    // glass variant; the gradient backdrop below shows through every surface.
     val colorScheme = when {
         dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
             if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
@@ -175,7 +177,7 @@ fun AppTheme(
 
         darkTheme -> DarkColor
         else -> LightColor
-    }
+    }.toGlassScheme(darkTheme)
     val snackbarController = rememberAppSnackbarController()
 
     val view = LocalView.current
@@ -195,9 +197,11 @@ fun AppTheme(
         LocalAppSnackbar provides snackbarController
     ) {
         MaterialTheme(
-            colorScheme = colorScheme
+            colorScheme = colorScheme,
+            shapes = GlassShapes
         ) {
             Box(modifier = Modifier.fillMaxSize()) {
+                AppGlassBackground(modifier = Modifier.matchParentSize())
                 AppSnackbarBridge(controller = snackbarController)
                 content()
                 AppSnackbarHost(hostState = snackbarController.hostState)

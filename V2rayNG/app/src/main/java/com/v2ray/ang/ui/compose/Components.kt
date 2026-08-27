@@ -170,6 +170,8 @@ fun AppListItem(
     Row(
         modifier = modifier
             .fillMaxWidth()
+            .padding(horizontal = 12.dp, vertical = 4.dp)
+            .glassPanel(fill = MaterialTheme.colorScheme.surfaceContainerLowest)
             .clickable { onCheckedChange(!checked) }
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
@@ -282,16 +284,30 @@ fun ReorderableCollectionItemScope.reorderableDragHandle(): Modifier {
 fun ReorderableListItem(
     scope: ReorderableCollectionItemScope,
     isDragging: Boolean,
+    glass: Boolean = false,
     content: @Composable RowScope.() -> Unit
 ) {
     val elevation by reorderableElevation(isDragging)
+    // Transparent so the glass card of the wrapped row shows through; the
+    // surface only contributes the drag shadow.
     Surface(
         modifier = Modifier.fillMaxWidth(),
+        color = Color.Transparent,
         shadowElevation = elevation
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
+                .then(
+                    if (glass) {
+                        Modifier
+                            .padding(horizontal = 10.dp, vertical = 4.dp)
+                            .glassPanel(fill = MaterialTheme.colorScheme.surfaceContainerLow)
+                            .padding(vertical = 8.dp)
+                    } else {
+                        Modifier
+                    }
+                )
                 .then(with(scope) { reorderableDragHandle() }),
             verticalAlignment = Alignment.CenterVertically,
             content = content
@@ -310,6 +326,7 @@ fun ReorderableGridItem(
         modifier = Modifier
             .fillMaxWidth()
             .then(with(scope) { reorderableDragHandle() }),
+        color = Color.Transparent,
         shadowElevation = elevation
     ) {
         content()

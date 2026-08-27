@@ -16,7 +16,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.text.selection.TextSelectionColors
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -58,7 +57,7 @@ fun ConfirmDialog(
         else confirmFocusRequester.requestFocus()
     }
 
-    AlertDialog(
+    GlassAlertDialog(
         onDismissRequest = onDismiss,
         title = title?.let { { Text(it) } },
         text = { Text(message, style = MaterialTheme.typography.bodyMedium) },
@@ -81,8 +80,7 @@ fun ConfirmDialog(
                     Text(text)
                 }
             }
-        },
-        containerColor = MaterialTheme.colorScheme.surface
+        }
     )
 }
 
@@ -124,7 +122,7 @@ fun InputDialog(
     onConfirm: () -> Unit,
     onDismiss: () -> Unit
 ) {
-    AlertDialog(
+    GlassAlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(title) },
         text = {
@@ -159,8 +157,7 @@ fun InputDialog(
         },
         dismissButton = {
             TextButton(onClick = onDismiss) { Text(dismissText) }
-        },
-        containerColor = MaterialTheme.colorScheme.surface
+        }
     )
 }
 
@@ -170,7 +167,7 @@ fun QRCodeDialog(
     onDismiss: () -> Unit
 ) {
     if (bitmap == null) return
-    AlertDialog(
+    GlassAlertDialog(
         onDismissRequest = onDismiss,
         text = {
             Image(
@@ -183,8 +180,7 @@ fun QRCodeDialog(
         },
         confirmButton = {
             TextButton(onClick = onDismiss) { Text(stringResource(R.string.action_close)) }
-        },
-        containerColor = MaterialTheme.colorScheme.surface
+        }
     )
 }
 
@@ -203,7 +199,7 @@ fun <T> SelectListDialog(
     selectedOption: T? = null,
     showRadio: Boolean = false
 ) {
-    AlertDialog(
+    GlassAlertDialog(
         onDismissRequest = onDismiss,
         title = title?.let { { Text(it) } },
         text = {
@@ -244,7 +240,6 @@ fun <T> SelectListDialog(
             TextButton(onClick = onDismiss) {
                 Text(stringResource(R.string.action_cancel))
             }
-        },
-        containerColor = MaterialTheme.colorScheme.surface
+        }
     )
 }

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Light window backdrop matching the Compose glass gradient, so the first
+     frame before Compose attaches already looks like the final backdrop. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android">
+    <gradient
+        android:angle="-45"
+        android:startColor="#FFF3F6FD"
+        android:centerColor="#FFF7F4F4"
+        android:endColor="#FFFDF5EE"
+        android:type="linear" />
+</shape>

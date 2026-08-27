@@ -88,9 +88,13 @@ private fun SettingsItemRow(
     val descriptionColor = if (enabled) MaterialTheme.colorScheme.onSurfaceVariant
     else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f)
 
+    // Every preference row across all settings-style screens becomes a small
+    // frosted card; the ripple is clipped to the rounded glass shape.
     Row(
         modifier = modifier
             .fillMaxWidth()
+            .padding(horizontal = 12.dp, vertical = 3.dp)
+            .glassPanel(fill = MaterialTheme.colorScheme.surfaceContainerLowest)
             .then(if (onClick != null) Modifier.clickable(enabled = enabled, onClick = onClick) else Modifier)
             .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically

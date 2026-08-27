@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -46,7 +45,7 @@ import com.v2ray.ang.handler.MmkvManager.rememberMmkvBool
 import com.v2ray.ang.ui.base.BaseComponentActivity
 import com.v2ray.ang.ui.compose.AppTopBar
 import com.v2ray.ang.ui.compose.DeleteConfirmDialog
-import com.v2ray.ang.ui.compose.ItemDivider
+import com.v2ray.ang.ui.compose.GlassAlertDialog
 import com.v2ray.ang.ui.compose.QRCodeDialog
 import com.v2ray.ang.ui.compose.ReorderableListItem
 import com.v2ray.ang.ui.compose.SelectListDialog
@@ -160,7 +159,8 @@ fun SubSettingScreen(
                 ReorderableItem(reorderableState, key = subCache.guid) { isDragging ->
                     ReorderableListItem(
                         scope = this,
-                        isDragging = isDragging
+                        isDragging = isDragging,
+                        glass = true
                     ) {
                         Row(
                             modifier = Modifier
@@ -241,7 +241,6 @@ fun SubSettingScreen(
                             }
                         }
                     }
-                    ItemDivider()
                 }
             }
         }
@@ -289,7 +288,7 @@ fun SubSettingScreen(
         var autoRemoveInvalidAfterTest by rememberMmkvBool(AppConfig.PREF_AUTO_REMOVE_INVALID_AFTER_TEST, false)
         var autoSortAfterTest by rememberMmkvBool(AppConfig.PREF_AUTO_SORT_AFTER_TEST, false)
 
-        AlertDialog(
+        GlassAlertDialog(
             onDismissRequest = { showUpdateDialog = false },
             text = {
                 Column {

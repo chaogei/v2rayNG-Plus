@@ -35,8 +35,9 @@ import com.v2ray.ang.ui.base.BaseComponentActivity
 import com.v2ray.ang.ui.compose.AppDropdownMenuItems
 import com.v2ray.ang.ui.compose.AppListItem
 import com.v2ray.ang.ui.compose.AppTopBar
-import com.v2ray.ang.ui.compose.ItemDivider
 import com.v2ray.ang.ui.compose.NavigationBarsBottomPadding
+import com.v2ray.ang.ui.compose.glassBorder
+import com.v2ray.ang.ui.compose.glassOverlayColor
 import com.v2ray.ang.ui.compose.verticalScrollbar
 
 private enum class AppPickerMenuAction(@StringRes val labelRes: Int) {
@@ -166,7 +167,9 @@ fun AppPickerScreen(
                         DropdownMenu(
                             expanded = showMenu,
                             onDismissRequest = { showMenu = false },
-                            containerColor = MaterialTheme.colorScheme.surface
+                            shape = MaterialTheme.shapes.large,
+                            containerColor = glassOverlayColor(),
+                            border = glassBorder()
                         ) {
                             AppDropdownMenuItems(AppPickerMenuAction.entries, { it.labelRes }) { action ->
                                 showMenu = false
@@ -198,7 +201,6 @@ fun AppPickerScreen(
                     checked = checked,
                     onCheckedChange = { onToggleApp(app.packageName) }
                 )
-                ItemDivider()
             }
         }
     }
