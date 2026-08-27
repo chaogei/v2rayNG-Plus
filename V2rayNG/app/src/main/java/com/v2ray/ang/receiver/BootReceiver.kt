@@ -50,11 +50,8 @@ class BootReceiver : BroadcastReceiver() {
             return
         }
 
-        if (MmkvManager.getSelectServer().isNullOrEmpty()) {
-            LogUtil.w(AppConfig.TAG, "BootReceiver: No server selected")
-            return
-        }
-
+        // No selected profile is not a reason to skip: the service then comes up as a
+        // local proxy with a freedom outbound, which is exactly what that state means now.
         LogUtil.i(AppConfig.TAG, "BootReceiver: Starting V2Ray service")
         LauncherManager.startService(context)
         SubscriptionUpdater.sync(context)

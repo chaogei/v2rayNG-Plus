@@ -28,6 +28,7 @@ private enum class ImportMenuAction(@StringRes val labelRes: Int, val action: Ma
 
 enum class MainMoreMenuAction(@StringRes val labelRes: Int) {
     RestartService(R.string.title_service_restart),
+    UseLocalProxyDirect(R.string.title_local_proxy_direct),
     DeleteAll(R.string.title_del_all_config),
     DeleteDuplicate(R.string.title_del_duplicate_config),
     DeleteInvalid(R.string.title_del_invalid_config),

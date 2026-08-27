@@ -64,6 +64,7 @@ object AppConfig {
     const val PREF_PREFER_IPV6 = "pref_prefer_ipv6"
     const val PREF_PROXY_SHARING = "pref_proxy_sharing_enabled"
     const val PREF_ENABLE_LOCAL_PROXY = "pref_enable_local_proxy"
+    const val PREF_LOCAL_PROXY_DIRECT_ONLY = "pref_local_proxy_direct_only"
     const val PREF_LOCAL_INBOUND_MODE = "pref_local_inbound_mode"
     const val PREF_SOCKS_PORT = "pref_socks_port"
     const val PREF_HTTP_PORT = "pref_http_port"

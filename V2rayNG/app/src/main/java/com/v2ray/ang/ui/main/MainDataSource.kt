@@ -18,6 +18,9 @@ interface MainDataSource : Closeable {
     fun getSelectServer(): String?
     fun setSelectServer(guid: String)
 
+    fun isLocalProxyDirectOnly(): Boolean
+    fun setLocalProxyDirectOnly(enabled: Boolean)
+
     fun getConfirmRemove(): Boolean
     fun getDoubleColumnDisplay(): Boolean
     fun isGroupAllDisplayEnabled(): Boolean

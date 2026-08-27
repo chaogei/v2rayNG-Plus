@@ -317,6 +317,7 @@
     <string name="logcat_clear">清除</string>
     <string name="logcat_share">分享日誌</string>
     <string name="title_service_restart">重新啟動服務</string>
+    <string name="title_local_proxy_direct">本機代理 · 直連</string>
     <string name="title_del_all_config">刪除所有設定</string>
     <string name="title_del_duplicate_config">刪除重複設定</string>
     <string name="title_del_invalid_config">刪除無效設定</string>
@@ -394,6 +395,8 @@
     <string name="connection_test_error_status_code">錯誤碼：#%d</string>
     <string name="connection_connected">"已連線。輕觸以檢查連線。"</string>
     <string name="connection_not_connected">"未連線"</string>
+    <string name="connection_connected_local_proxy_direct">"本機代理 · 直連。輕觸以檢查連線。"</string>
+    <string name="connection_not_connected_local_proxy_direct">"未連線 · 本機代理（直連）"</string>
     <string name="connection_running_task_left">正在執行的測試：%s</string>
 
     <string name="import_subscription_success">匯入訂閱成功</string>

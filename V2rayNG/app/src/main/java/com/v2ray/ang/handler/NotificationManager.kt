@@ -93,7 +93,7 @@ object NotificationManager {
 
         mBuilder = NotificationCompat.Builder(service, channelId)
             .setSmallIcon(R.drawable.ic_stat_name)
-            .setContentTitle(currentConfig?.remarks ?: service.getString(R.string.app_name))
+            .setContentTitle(currentConfig?.remarks ?: service.getString(R.string.title_local_proxy_direct))
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setOngoing(true)
             .setShowWhen(false)

@@ -9,6 +9,11 @@ data class CoreConfigContext(
     val context: Context,
     val guid: String,
     val isCustom: Boolean = false,
+    /**
+     * No profile is in play: the core only serves the local inbounds and everything
+     * leaves through freedom. [resolvedOutbounds] is empty in that case.
+     */
+    val isDirectOnly: Boolean = false,
     val resolvedOutbounds: List<ResolvedOutbound> = emptyList(),
     val routingDomainRules: List<RoutingDomainRule> = emptyList(),
     /**

@@ -36,6 +36,7 @@ class QSTileService : TileService() {
         } else if (state == Tile.STATE_ACTIVE) {
             qsTile?.state = Tile.STATE_ACTIVE
             qsTile?.label = CoreServiceManager.getRunningServerName()
+                .ifEmpty { getString(R.string.title_local_proxy_direct) }
         }
 
         qsTile?.updateTile()

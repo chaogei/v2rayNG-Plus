@@ -354,6 +354,7 @@
     <string name="logcat_clear">Clear</string>
     <string name="logcat_share">Share log</string>
     <string name="title_service_restart">Restart service</string>
+    <string name="title_local_proxy_direct">Local proxy · Direct</string>
     <string name="title_del_all_config">Delete configs</string>
     <string name="title_del_duplicate_config">Delete duplicate configs</string>
     <string name="title_del_invalid_config">Delete invalid configs</string>
@@ -431,6 +432,8 @@
     <string name="connection_test_error_status_code">Error code: #%d</string>
     <string name="connection_connected">Connected. Tap to check connection.</string>
     <string name="connection_not_connected">Not connected</string>
+    <string name="connection_connected_local_proxy_direct">Local proxy · Direct. Tap to check connection.</string>
+    <string name="connection_not_connected_local_proxy_direct">Not connected · Local proxy (direct)</string>
     <string name="connection_running_task_left">Tests running: %s</string>
 
     <string name="import_subscription_success">Subscription imported successfully</string>

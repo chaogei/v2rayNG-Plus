@@ -111,6 +111,11 @@ class MainRepository(
 
     override fun setSelectServer(guid: String) = MmkvManager.setSelectServer(guid)
 
+    override fun isLocalProxyDirectOnly(): Boolean = SettingsManager.isLocalProxyDirectOnly()
+
+    override fun setLocalProxyDirectOnly(enabled: Boolean) =
+        SettingsManager.setLocalProxyDirectOnly(enabled)
+
     override fun getConfirmRemove(): Boolean =
         MmkvManager.decodeSettingsBool(AppConfig.PREF_CONFIRM_REMOVE, false)
 

@@ -184,10 +184,16 @@ object CoreServiceManager {
 
     @Throws(Exception::class)
     private fun launchCore(service: Service, vpnInterface: ParcelFileDescriptor?, isReload: Boolean = false) {
-        val guid = MmkvManager.getSelectServer() ?: error("No server selected")
-        val config = MmkvManager.decodeServerConfig(guid) ?: error("Failed to decode server config")
+        // An empty guid is the local-proxy-only run: the core serves the local inbounds and
+        // everything leaves through freedom, no profile involved.
+        val guid = if (SettingsManager.isLocalProxyDirectOnly()) "" else MmkvManager.getSelectServer().orEmpty()
+        val config = if (guid.isEmpty()) {
+            null
+        } else {
+            MmkvManager.decodeServerConfig(guid) ?: error("Failed to decode server config")
+        }
 
-        LogUtil.i(AppConfig.TAG, "StartCore-Manager: Starting core loop for ${config.remarks}")
+        LogUtil.i(AppConfig.TAG, "StartCore-Manager: Starting core loop for ${config?.remarks ?: "local proxy (direct)"}")
         val result = CoreConfigManager.getV2rayConfig(service, guid)
         LogUtil.d(AppConfig.TAG, result.content)
         if (!result.status) {
@@ -196,7 +202,7 @@ object CoreServiceManager {
 
         currentConfig = config
         var tunFd = vpnInterface?.fd ?: 0
-        val dialerMode = BrowserDialerMode.from(config.browserDialerMode)
+        val dialerMode = BrowserDialerMode.from(config?.browserDialerMode)
         val dialerAddr = if (dialerMode != null) {
             "127.0.0.1:${Utils.findRandomFreePort()}"
         } else {

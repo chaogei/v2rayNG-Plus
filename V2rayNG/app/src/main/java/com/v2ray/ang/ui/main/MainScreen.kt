@@ -43,8 +43,10 @@ fun MainScreen(
     val groups = uiState.groups
     val isLoading by mainViewModel.isLoading.collectAsStateWithLifecycle()
     val isRunning = uiState.isRunning
-    val displayText = mainViewModel.formatStatus(uiState.status)
-    val selectedGuid = uiState.selectedGuid
+    val displayText = mainViewModel.formatStatus(uiState.status, uiState.localProxyDirectOnly)
+    // Direct-only keeps the selection around so one tap goes back to it, but nothing
+    // should look selected while the core runs without a remote outbound.
+    val selectedGuid = uiState.selectedGuid?.takeUnless { uiState.localProxyDirectOnly }
     val doubleColumnDisplay = uiState.doubleColumnDisplay
     val confirmRemove = uiState.confirmRemove
     val shareQRCodeBitmap = uiState.shareQRCodeBitmap
@@ -164,6 +166,7 @@ fun MainScreen(
                     onMoreMenuAction = { action ->
                         when (action) {
                             MainMoreMenuAction.RestartService -> onAction(MainAction.RestartService)
+                            MainMoreMenuAction.UseLocalProxyDirect -> onAction(MainAction.UseLocalProxyDirect)
                             MainMoreMenuAction.DeleteAll -> showDelAllConfirm = true
                             MainMoreMenuAction.DeleteDuplicate -> showDelDuplicateConfirm = true
                             MainMoreMenuAction.DeleteInvalid -> showDelInvalidConfirm = true

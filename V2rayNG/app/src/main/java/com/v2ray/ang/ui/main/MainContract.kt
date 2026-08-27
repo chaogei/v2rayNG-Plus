@@ -20,6 +20,8 @@ data class MainUiState(
     val groups: List<GroupMapItem> = emptyList(),
     val selectedGroupId: String = "",
     val selectedGuid: String? = null,
+    /** No remote outbound: only the local inbounds, everything leaves through freedom. */
+    val localProxyDirectOnly: Boolean = false,
     val isRunning: Boolean = false,
     val isTesting: Boolean = false,
     val status: MainStatus = MainStatus.Disconnected,
@@ -53,6 +55,7 @@ sealed interface MainAction {
     data class ImportManually(val type: Int) : MainAction
     data object RestartService : MainAction
     data object LocateSelectedServer : MainAction
+    data object UseLocalProxyDirect : MainAction
 
     data class SelectGroup(val groupId: String) : MainAction
     data class SelectServer(val guid: String) : MainAction

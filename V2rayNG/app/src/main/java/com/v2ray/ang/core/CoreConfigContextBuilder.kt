@@ -27,9 +27,22 @@ object CoreConfigContextBuilder {
     /**
      * Load one profile and produce a fully analyzed context.
      *
-     * Null is returned only when the selected profile cannot be loaded.
+     * An empty [guid] means "local proxy only": no profile is resolved and the caller
+     * builds a freedom outbound instead. Null is returned only when a requested profile
+     * cannot be loaded.
      */
     fun build(context: Context, guid: String): CoreConfigContext? {
+        if (guid.isEmpty()) {
+            val rulesets = MmkvManager.decodeRoutingRulesets().orEmpty()
+            return CoreConfigContext(
+                context = context,
+                guid = guid,
+                isDirectOnly = true,
+                routingDomainRules = collectRoutingDomainRulesForDns(rulesets),
+                rulesetItems = rulesets,
+            )
+        }
+
         val config = MmkvManager.decodeServerConfig(guid) ?: return null
 
         // CUSTOM: return immediately — CoreConfigManager handles this path on its own.

@@ -22,10 +22,6 @@ import com.v2ray.ang.util.Utils
 object LauncherManager {
 
     fun startServiceFromToggle(context: Context): Boolean {
-        if (MmkvManager.getSelectServer().isNullOrEmpty()) {
-            context.toast(R.string.app_tile_first_use)
-            return false
-        }
         try {
             startContextService(context)
         } catch (e: Exception) {
@@ -41,6 +37,7 @@ object LauncherManager {
 
         if (guid != null) {
             MmkvManager.setSelectServer(guid)
+            SettingsManager.setLocalProxyDirectOnly(false)
         }
 
         try {
@@ -73,33 +70,35 @@ object LauncherManager {
         // Note: isRunning check is removed here to avoid loading Native libraries in the UI process.
         // The check is performed in CoreServiceManager when the service starts in the daemon process.
 
-        val guid = MmkvManager.getSelectServer()
-            ?: run {
-                LogUtil.e(AppConfig.TAG, "LauncherManager: No server selected")
-                error(context.getString(R.string.app_tile_first_use))
-            }
+        // Without a profile the core still starts: the local inbounds stay up and traffic
+        // leaves through freedom, so there is nothing to validate here.
+        val directOnly = SettingsManager.isLocalProxyDirectOnly()
+        if (!directOnly) {
+            val guid = MmkvManager.getSelectServer().orEmpty()
+            val config = MmkvManager.decodeServerConfig(guid)
+                ?: run {
+                    LogUtil.e(AppConfig.TAG, "LauncherManager: Failed to decode server config")
+                    error(context.getString(R.string.toast_config_file_invalid))
+                }
 
-        val config = MmkvManager.decodeServerConfig(guid)
-            ?: run {
-                LogUtil.e(AppConfig.TAG, "LauncherManager: Failed to decode server config")
+            if (!config.configType.isComplexType()
+                && !Utils.isValidUrl(config.server)
+                && !Utils.isPureIpAddress(config.server.orEmpty())
+            ) {
+                LogUtil.e(AppConfig.TAG, "LauncherManager: Invalid server configuration")
                 error(context.getString(R.string.toast_config_file_invalid))
             }
 
-        if (!config.configType.isComplexType()
-            && !Utils.isValidUrl(config.server)
-            && !Utils.isPureIpAddress(config.server.orEmpty())
-        ) {
-            LogUtil.e(AppConfig.TAG, "LauncherManager: Invalid server configuration")
-            error(context.getString(R.string.toast_config_file_invalid))
-        }
-
-        if (config.insecure == true && config.pinnedCA256.isNullOrEmpty()) {
-            context.toastError(R.string.toast_allow_insecure_deprecated)
-            Utils.setClipboard(context, context.getString(R.string.toast_allow_insecure_deprecated))
+            if (config.insecure == true && config.pinnedCA256.isNullOrEmpty()) {
+                context.toastError(R.string.toast_allow_insecure_deprecated)
+                Utils.setClipboard(context, context.getString(R.string.toast_allow_insecure_deprecated))
+            }
         }
 
         if (MmkvManager.decodeSettingsBool(AppConfig.PREF_PROXY_SHARING)) {
             context.toast(R.string.toast_warning_pref_proxysharing_short)
+        } else if (directOnly) {
+            context.toast(R.string.title_local_proxy_direct)
         } else {
             context.toast(R.string.toast_services_start)
         }

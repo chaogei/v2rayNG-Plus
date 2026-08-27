@@ -205,9 +205,10 @@ object SettingsManager {
             return false
         }
 
-        val guid = MmkvManager.getSelectServer() ?: return false
-        val config = decodeServerConfig(guid) ?: return false
-        if (config.configType == EConfigType.CUSTOM) {
+        // In direct-only mode no profile is used, so the answer comes from the user rulesets below.
+        val guid = if (isLocalProxyDirectOnly()) null else MmkvManager.getSelectServer()
+        val config = guid?.let { decodeServerConfig(it) }
+        if (guid != null && config?.configType == EConfigType.CUSTOM) {
             val raw = MmkvManager.decodeServerRaw(guid) ?: return false
             val v2rayConfig = JsonUtil.fromJsonSafe(raw, V2rayConfig::class.java)
             val exist = v2rayConfig?.routing?.rules?.filter { it.outboundTag == TAG_DIRECT }?.any {
@@ -547,6 +548,27 @@ object SettingsManager {
      */
     fun isRootMode(): Boolean {
         return MmkvManager.decodeSettingsBool(AppConfig.PREF_ROOT_MODE_ENABLE, false)
+    }
+
+    /**
+     * Check whether the core should run without any remote outbound.
+     *
+     * True either because the user explicitly picked "local proxy / direct", or simply
+     * because no profile is selected (fresh install, empty list, deleted selection).
+     * In that state the core still starts and serves the local inbounds, but everything
+     * leaves through freedom instead of a proxy.
+     */
+    fun isLocalProxyDirectOnly(): Boolean {
+        return MmkvManager.decodeSettingsBool(AppConfig.PREF_LOCAL_PROXY_DIRECT_ONLY, false)
+                || MmkvManager.getSelectServer().isNullOrEmpty()
+    }
+
+    /**
+     * Persist the explicit "local proxy / direct" choice. The selected profile is kept so
+     * the user can go back to it with a single tap.
+     */
+    fun setLocalProxyDirectOnly(enabled: Boolean) {
+        MmkvManager.encodeSettings(AppConfig.PREF_LOCAL_PROXY_DIRECT_ONLY, enabled)
     }
 
     /**

@@ -167,12 +167,14 @@ object CoreConfigManager {
      * outbounds before routing, DNS, and runtime extras are assembled.
      */
     private fun buildUnifiedConfig(configContext: CoreConfigContext): V2rayConfig {
-        require(configContext.resolvedOutbounds.isNotEmpty()) { "resolvedOutbounds must not be empty for a non-CUSTOM context" }
-        val primaryResolvedOutbound = configContext.resolvedOutbounds.first()
+        require(configContext.isDirectOnly || configContext.resolvedOutbounds.isNotEmpty()) {
+            "resolvedOutbounds must not be empty for a non-CUSTOM context"
+        }
+        val primaryResolvedOutbound = configContext.resolvedOutbounds.firstOrNull()
 
         val v2rayConfig = initV2rayConfig(configContext)
         v2rayConfig.log.loglevel = MmkvManager.decodeSettingsString(AppConfig.PREF_LOGLEVEL) ?: "warning"
-        v2rayConfig.remarks = primaryResolvedOutbound.profile.remarks
+        v2rayConfig.remarks = primaryResolvedOutbound?.profile?.remarks
 
         configureInbounds(v2rayConfig)
 
@@ -182,6 +184,14 @@ object CoreConfigManager {
         val existingTags = v2rayConfig.outbounds.mapTo(mutableSetOf()) { it.tag }
         val policyGroupBalancerTags = mutableMapOf<String, String>()
         val balancerStrategies = mutableListOf<BalancerStrategy>()
+
+        if (configContext.isDirectOnly) {
+            // Nothing to proxy through: give the "proxy" tag a freedom outbound so the local
+            // inbounds, the DNS module and every routing rule keep working and simply go out
+            // directly. No placeholder remote node is fabricated.
+            v2rayConfig.outbounds.add(0, buildDirectOutbound(AppConfig.TAG_PROXY))
+            existingTags.add(AppConfig.TAG_PROXY)
+        }
 
         // resolvedOutbounds is a single ordered plan: index 0 is primary and must be prepended,
         // the rest are routing outbounds and can be appended.
@@ -205,7 +215,7 @@ object CoreConfigManager {
 
         // (added by getDns / getCustomLocalDns) to use the balancer, then add
         // the catch-all balancer rule.
-        if (primaryResolvedOutbound.resolvedType == CoreResolvedType.POLICYGROUP) {
+        if (primaryResolvedOutbound?.resolvedType == CoreResolvedType.POLICYGROUP) {
             if (v2rayConfig.routing.domainStrategy == "IPIfNonMatch") {
                 v2rayConfig.routing.rules.add(
                     V2rayConfig.RoutingBean.RulesBean(
@@ -228,6 +238,25 @@ object CoreConfigManager {
         resolveOutboundDomainsToHosts(v2rayConfig)
 
         return v2rayConfig
+    }
+
+    /**
+     * Build a freedom outbound under an arbitrary tag, matching the "direct" entry of the
+     * asset template.
+     */
+    private fun buildDirectOutbound(tag: String): V2rayConfig.OutboundBean {
+        return V2rayConfig.OutboundBean(
+            tag = tag,
+            protocol = AppConfig.PROTOCOL_FREEDOM,
+            settings = null,
+            streamSettings = V2rayConfig.OutboundBean.StreamSettingsBean(
+                network = null,
+                sockopt = V2rayConfig.OutboundBean.StreamSettingsBean.SockoptBean(
+                    domainStrategy = "UseIP"
+                )
+            ),
+            mux = null,
+        )
     }
 
     /**

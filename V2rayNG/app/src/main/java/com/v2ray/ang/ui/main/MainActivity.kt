@@ -17,7 +17,6 @@ import com.v2ray.ang.core.LauncherManager
 import com.v2ray.ang.dto.entities.ProfileItem
 import com.v2ray.ang.enums.EConfigType
 import com.v2ray.ang.enums.PermissionType
-import com.v2ray.ang.extension.toast
 import com.v2ray.ang.extension.toastError
 import com.v2ray.ang.extension.toastSuccess
 import com.v2ray.ang.handler.AngConfigManager
@@ -112,6 +111,7 @@ class MainActivity : HelperBaseComponentActivity() {
                     is MainAction.ImportManually -> importManually(action.type)
                     MainAction.RestartService -> LauncherManager.restartServiceOrStart(this, ::requestServiceStart)
                     MainAction.LocateSelectedServer -> mainViewModel.triggerLocateSelectedServer()
+                    MainAction.UseLocalProxyDirect -> useLocalProxyDirect()
                     is MainAction.SelectServer -> setSelectServer(action.guid)
                     is MainAction.EditServer -> editServer(action.guid, action.profile)
                     is MainAction.ShareClipboard -> shareToClipboard(action.guid)
@@ -182,10 +182,6 @@ class MainActivity : HelperBaseComponentActivity() {
     }
 
     private fun startV2Ray() {
-        if (mainViewModel.uiState.value.selectedGuid.isNullOrEmpty()) {
-            toast(R.string.title_file_chooser)
-            return
-        }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.CINNAMON_BUN &&
             MmkvManager.decodeSettingsBool(AppConfig.PREF_PROXY_SHARING)
         ) {
@@ -270,11 +266,19 @@ class MainActivity : HelperBaseComponentActivity() {
     }
 
     private fun setSelectServer(guid: String) {
-        val selected = mainViewModel.uiState.value.selectedGuid
-        if (guid != selected) {
+        val state = mainViewModel.uiState.value
+        // Also restart when the same node is tapped while running local-proxy-only: the
+        // selection did not change, but the outbound goes from freedom back to the node.
+        if (guid != state.selectedGuid || state.localProxyDirectOnly) {
             mainViewModel.updateSelectedGuid(guid)
             LauncherManager.restartService(this)
         }
+    }
+
+    private fun useLocalProxyDirect() {
+        if (mainViewModel.uiState.value.localProxyDirectOnly) return
+        mainViewModel.enableLocalProxyDirect()
+        LauncherManager.restartService(this)
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {

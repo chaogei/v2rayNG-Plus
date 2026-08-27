@@ -51,6 +51,7 @@ class MainViewModel(
         MainUiState(
             selectedGroupId = dataSource.getSelectedSubscriptionId(),
             selectedGuid = dataSource.getSelectServer(),
+            localProxyDirectOnly = dataSource.isLocalProxyDirectOnly(),
             confirmRemove = dataSource.getConfirmRemove(),
             doubleColumnDisplay = dataSource.getDoubleColumnDisplay()
         )
@@ -130,9 +131,17 @@ class MainViewModel(
         }
     }
 
-    internal fun formatStatus(status: MainStatus): String = when (status) {
-        MainStatus.Disconnected -> dataSource.getString(R.string.connection_not_connected)
-        MainStatus.Connected -> dataSource.getString(R.string.connection_connected)
+    internal fun formatStatus(status: MainStatus, localProxyDirectOnly: Boolean = false): String = when (status) {
+        MainStatus.Disconnected -> dataSource.getString(
+            if (localProxyDirectOnly) R.string.connection_not_connected_local_proxy_direct
+            else R.string.connection_not_connected
+        )
+
+        MainStatus.Connected -> dataSource.getString(
+            if (localProxyDirectOnly) R.string.connection_connected_local_proxy_direct
+            else R.string.connection_connected
+        )
+
         MainStatus.Testing -> dataSource.getString(R.string.connection_test_testing)
         is MainStatus.TestProgress -> dataSource.getString(
             R.string.connection_running_task_left,
@@ -209,6 +218,7 @@ class MainViewModel(
             is MainAction.ImportManually,
             MainAction.RestartService,
             MainAction.LocateSelectedServer,
+            MainAction.UseLocalProxyDirect,
             is MainAction.EditServer,
             is MainAction.ShareClipboard,
             is MainAction.ShareFullContent -> {
@@ -341,7 +351,8 @@ class MainViewModel(
                     it.copy(
                         groups = groups,
                         selectedGroupId = selectedGroup,
-                        selectedGuid = dataSource.getSelectServer()
+                        selectedGuid = dataSource.getSelectServer(),
+                        localProxyDirectOnly = dataSource.isLocalProxyDirectOnly()
                     )
                 }
                 groups.forEach { mutableServersForGroup(it.id) }
@@ -640,11 +651,24 @@ class MainViewModel(
 
     fun updateSelectedGuid(guid: String) {
         dataSource.setSelectServer(guid)
-        _uiState.update { it.copy(selectedGuid = guid) }
+        // Picking a node leaves the explicit direct-only choice behind.
+        dataSource.setLocalProxyDirectOnly(false)
+        _uiState.update { it.copy(selectedGuid = guid, localProxyDirectOnly = false) }
+    }
+
+    /** Keep the selection, but run the core with a freedom outbound only. */
+    fun enableLocalProxyDirect() {
+        dataSource.setLocalProxyDirectOnly(true)
+        _uiState.update { it.copy(localProxyDirectOnly = true) }
     }
 
     fun refreshSelectedGuid() {
-        _uiState.update { it.copy(selectedGuid = dataSource.getSelectServer()) }
+        _uiState.update {
+            it.copy(
+                selectedGuid = dataSource.getSelectServer(),
+                localProxyDirectOnly = dataSource.isLocalProxyDirectOnly()
+            )
+        }
     }
 
     fun removeServerAndRefresh(guid: String) {
