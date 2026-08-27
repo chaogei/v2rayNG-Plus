@@ -15,14 +15,21 @@
 
 **绝大多数近年的手机选 arm64 版即可**；不确定 CPU 架构或要装到模拟器/旧设备时用 universal 版。
 
-- Gradle 任务：`assembleFdroidDebug`（JDK 21、SDK Platform 37.0、Build-Tools 37.0.0、Gradle 9.5.1）
-- 核心库：`libv2ray.aar` 来自上游 [AndroidLibXrayLite v26.8.20](https://github.com/2dust/AndroidLibXrayLite/releases/tag/v26.8.20)
+- Gradle 任务：`assembleFdroidDebug`（JDK 21、SDK Platform 37.0、Gradle 9.5.1、AGP 9.3.1 自带的 Build-Tools 36.0.0）
+- 核心库：`libv2ray.aar` 来自上游 [AndroidLibXrayLite v26.8.20](https://github.com/2dust/AndroidLibXrayLite/releases/tag/v26.8.20)（SHA256 `670cf11d9d10a6bb6548ac4f593acfa4339155732f6f8de4d45923f30a74deed`）
 - tun2socks 原生库：`libhev-socks5-tunnel.so` / `libhevsockstun.so`（VPN 模式与 root 模式所需）提取自上游官方 [v2rayNG 2.3.5 release APK](https://github.com/2dust/v2rayNG/releases/tag/2.3.5)，已打入本 APK，各 ABI 齐全
 - 应用 ID：`com.v2ray.ang.fdroid`（fdroid flavor 带后缀，可与官方 Play 版共存）
 - 版本：2.3.5（arm64 包 versionCode 5074501，universal 包 5074500）
-- 源码提交：`da46bde`（`main`）
+- 源码提交：`da46bde`（`main`；其后的 `14daa9e` 只添加了本目录的 APK 与说明，不含源码改动）
+- 签名证书：Android Debug（`C=US, O=Android, CN=Android Debug`），证书 SHA-256 `5d06e758e4a4e7db7cfc733e29592cf1669f929e664969be537c87507fa2b945`
 
 校验：下载后运行 `sha256sum <apk>`，与上表比对。
+
+## 可复现性
+
+在干净的云端环境里按上述工具链重新执行了一次 `assembleFdroidDebug`（同一份源码、同一份 `libv2ray.aar` 与 hev 原生库），解包后与上表两个 APK 的全部条目**逐字节一致**（`classes*.dex`、资源、`lib/*/*.so` 均相同），仅 APK 签名块因 debug 密钥随机生成而不同。因此上表文件确认就是「修复完成后」的构建产物，无需重新下载或卸载重装。
+
+单元测试 `testFdroidDebugUnitTest` 与 `apksigner verify`（v2 方案）在该次复现中均通过。
 
 ## 安装方法
 
@@ -38,6 +45,7 @@ adb install -r v2rayNG-glass-fdroid-arm64-debug.apk
 
 - **debug 签名**：APK 用 Android 默认 debug 证书签名（非上游官方签名）。系统会提示"未知来源应用"，需在设置中允许当前来源安装；**不能覆盖安装**官方签名的 v2rayNG（签名不同，且本包 applicationId 带 `.fdroid` 后缀，通常是并存而非冲突）。
 - **debug 构建**：未混淆未优化，体积和运行时开销略大于 release；日常使用无碍。
+- 之前装过本目录里同名的 APK 时可以直接覆盖安装（签名和 applicationId 都没变，设置与订阅会保留）。
 - 首次开启 VPN 模式需授权 VPN 连接；Android 13+ 还会请求通知权限。
 
 ## 已知限制
