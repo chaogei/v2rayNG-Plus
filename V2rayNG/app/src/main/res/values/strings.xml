@@ -282,16 +282,18 @@
     <string name="toast_local_port_conflict">Port conflicts with another local inbound port</string>
     <string name="toast_local_auth_credentials_missing">Set both username and password, otherwise local authentication stays disabled</string>
     <string name="toast_http_port_normalized">The HTTP port matched the SOCKS port and was changed to %1$d</string>
-    <string name="summary_pref_local_inbound_custom">These ports also apply to CUSTOM profiles: the app injects the local SOCKS/HTTP/redir inbounds and leaves the rest of the JSON unchanged</string>
+    <string name="summary_pref_local_inbound_custom">CUSTOM profiles follow these settings too: on start their SOCKS/HTTP/redir inbounds are replaced by the ones above, the rest of their JSON is not touched</string>
     <string name="summary_pref_mode_local_direct">Local proxy · Direct plus VPN would create a system-wide tun that only sends traffic out directly. Starting that mode switches the run mode to Proxy only so only the local ports listen</string>
     <string name="toast_local_direct_switched_to_proxy">Local proxy · Direct started as Proxy only (not VPN), so the system tun is not raised</string>
     <string name="dialog_vpn_while_direct_title">Switch to VPN mode?</string>
     <string name="dialog_vpn_while_direct_message">Local proxy · Direct is active. VPN plus a direct outbound would tunnel the whole device straight out, so the next direct start will switch the run mode back to Proxy only automatically. Switch to VPN anyway?</string>
-    <string name="summary_pref_local_inbound_custom_selected">The selected profile is a CUSTOM config: these local SOCKS/HTTP/redir inbounds are injected into its JSON, everything else in it stays untouched</string>
+    <string name="summary_pref_local_inbound_custom_selected">Applies to your current selection: the selected profile is a CUSTOM config, so on start its SOCKS/HTTP/redir inbounds are replaced by the ones above — everything else in its JSON, including any tun inbound, runs as written</string>
     <string name="update_source_notice">Update source: %1$s (%2$s), a fork of 2dust/v2rayNG — not the official package</string>
     <string name="update_already_latest_version_fork">%1$s is already the latest version</string>
-    <string name="empty_server_list_direct_hint">Tap + in the top bar to add or import servers — or start without a node: the local proxy ports work with a direct (freedom) outbound</string>
-    <string name="action_start_local_proxy_direct">Start local proxy · Direct</string>
+    <string name="empty_server_list_direct_hint">Add or import servers with + in the top bar, or start Local proxy · Direct below — no node needed: the local ports listen and traffic goes straight out</string>
+    <string name="action_start_local_proxy_direct">Start Local proxy · Direct</string>
+    <string name="server_custom_type_note">CUSTOM · local inbounds injected</string>
+    <string name="summary_custom_config_editor">This JSON is saved as written; on start the app still replaces its SOCKS/HTTP/redir inbounds with the local ones from Settings (the rest, including tun, runs unchanged)</string>
 
     <string name="title_pref_local_dns_port">Local DNS port</string>
     <string name="summary_pref_local_dns_port">Local DNS port</string>
@@ -345,7 +347,6 @@
     <string name="theme_preset_graphite">Graphite Purple</string>
     <string name="theme_preset_silver">Silver Gray</string>
     <string name="empty_server_list">No profiles yet</string>
-    <string name="empty_server_list_hint">Tap + in the top bar to add or import servers</string>
     <string name="empty_search_result">No matching profiles</string>
     <string name="empty_sub_list">No subscriptions yet</string>
     <string name="empty_sub_list_hint">Tap + in the top bar to add a subscription group</string>

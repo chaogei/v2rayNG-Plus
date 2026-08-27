@@ -184,6 +184,7 @@ fun MainScreen(
                 MainBottomBar(
                     displayText = displayText,
                     isRunning = isRunning,
+                    startsLocalProxyDirect = uiState.localProxyDirectOnly,
                     isDarkTheme = isDarkTheme,
                     onAction = onAction
                 )

@@ -349,6 +349,16 @@ fun ServerCustomConfigScreen(
                 onValueChange = { remarks = it }
             )
 
+            // Saving keeps the JSON as written, yet the local inbounds still get
+            // injected on every start - said here so nobody edits the inbounds
+            // section and wonders why the ports come back.
+            Text(
+                text = stringResource(R.string.summary_custom_config_editor),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+            )
+
             Box(
                 modifier = Modifier
                     .weight(1f)

@@ -44,6 +44,8 @@ import com.v2ray.ang.ui.compose.colorFabInactiveLight
 fun MainBottomBar(
     displayText: String,
     isRunning: Boolean,
+    /** True when a start would run Local proxy · Direct (no node selected / explicit direct mode). */
+    startsLocalProxyDirect: Boolean,
     isDarkTheme: Boolean,
     onAction: (MainAction) -> Unit
 ) {
@@ -102,8 +104,14 @@ fun MainBottomBar(
             Icon(
                 painter = if (isRunning) painterResource(R.drawable.ic_stop_24dp)
                 else painterResource(R.drawable.ic_play_24dp),
+                // With no node selected the FAB starts Local proxy · Direct (same as
+                // the empty-list button), so say that instead of a vague "start service".
                 contentDescription = stringResource(
-                    if (isRunning) R.string.acc_stop else R.string.acc_start
+                    when {
+                        isRunning -> R.string.acc_stop
+                        startsLocalProxyDirect -> R.string.action_start_local_proxy_direct
+                        else -> R.string.acc_start
+                    }
                 ),
                 tint = Color.White,
                 modifier = Modifier.size(24.dp)

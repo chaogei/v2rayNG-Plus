@@ -61,6 +61,7 @@ import com.v2ray.ang.R
 import com.v2ray.ang.dto.LocateTarget
 import com.v2ray.ang.dto.entities.ProfileItem
 import com.v2ray.ang.dto.entities.ServersCache
+import com.v2ray.ang.enums.EConfigType
 import com.v2ray.ang.extension.isComplexType
 import com.v2ray.ang.extension.nullIfBlank
 import com.v2ray.ang.handler.AngConfigManager
@@ -332,7 +333,7 @@ private fun ServerItemRow(
             remarks = profile.remarks,
             statistics = profile.description.nullIfBlank()
                 ?: AngConfigManager.generateDescription(profile),
-            typeDescription = getProtocolDescription(profile),
+            typeDescription = typeDescription(profile),
             testDelayMillis = serverCache.testDelayMillis,
             isSelected = serverCache.guid == selectedGuid,
             subscriptionRemarks = subRemarks,
@@ -416,7 +417,7 @@ private fun ServerItemColumn(
         ServerListItem(
             remarks = profile.remarks,
             statistics = profile.description.nullIfBlank() ?: AngConfigManager.generateDescription(profile),
-            typeDescription = getProtocolDescription(profile),
+            typeDescription = typeDescription(profile),
             testDelayMillis = serverCache.testDelayMillis,
             isSelected = serverCache.guid == selectedGuid,
             subscriptionRemarks = subRemarks,
@@ -564,6 +565,20 @@ fun ServerListItem(
                 )
             }
         }
+    }
+}
+
+/**
+ * Type line of a server card. CUSTOM profiles carry a note that the local
+ * inbounds get injected on start, so selecting one is never a silent surprise
+ * (the full explanation lives in Settings and the CUSTOM editor).
+ */
+@Composable
+private fun typeDescription(profile: ProfileItem): String {
+    return if (profile.configType == EConfigType.CUSTOM) {
+        stringResource(R.string.server_custom_type_note)
+    } else {
+        getProtocolDescription(profile)
     }
 }
 
