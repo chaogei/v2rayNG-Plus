@@ -34,9 +34,18 @@ data class LocalInboundSnapshot(
     val effectiveHttpPort: Int
         get() = when (mode) {
             // Xray's socks inbound natively accepts HTTP on the same port;
-            // other cores get a dedicated HTTP inbound on port + 1.
-            LocalInboundMode.MIXED -> socksPort + if (Utils.isXray()) 0 else 1
+            // other cores get a dedicated HTTP inbound next to it.
+            LocalInboundMode.MIXED -> if (Utils.isXray()) socksPort else neighborPort(socksPort)
             LocalInboundMode.SOCKS_HTTP, LocalInboundMode.HTTP -> httpInboundPort
             LocalInboundMode.SOCKS -> if (Utils.isXray()) socksPort else 0
         }
+
+    companion object {
+        /**
+         * A distinct port next to [port], used when a derived inbound would
+         * otherwise collide with the SOCKS port. Steps down at the top of the
+         * range so 65535 does not derive the invalid port 65536.
+         */
+        fun neighborPort(port: Int): Int = if (port >= 65535) port - 1 else port + 1
+    }
 }

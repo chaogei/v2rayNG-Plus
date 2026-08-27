@@ -324,7 +324,11 @@ object SettingsManager {
             // A dedicated HTTP inbound must never collide with the SOCKS port;
             // resolving it here keeps the generated inbound and every consumer
             // of the effective HTTP port in agreement.
-            httpInboundPort = if (httpConfiguredPort == socksPort) socksPort + 1 else httpConfiguredPort,
+            httpInboundPort = if (httpConfiguredPort == socksPort) {
+                LocalInboundSnapshot.neighborPort(socksPort)
+            } else {
+                httpConfiguredPort
+            },
             authEnabled = credentials != null,
             username = credentials?.first,
             password = credentials?.second,

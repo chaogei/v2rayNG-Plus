@@ -7,6 +7,7 @@ import com.google.gson.JsonObject
 import com.v2ray.ang.AppConfig
 import com.v2ray.ang.dto.ConfigResult
 import com.v2ray.ang.dto.CoreConfigContext
+import com.v2ray.ang.dto.LocalInboundSnapshot
 import com.v2ray.ang.dto.V2rayConfig
 import com.v2ray.ang.dto.entities.ProfileItem
 import com.v2ray.ang.dto.entities.RulesetItem
@@ -528,7 +529,12 @@ object CoreConfigManager {
         val socksSettings = inboundSocks.settings
             ?: V2rayConfig.InboundBean.InSettingsBean().also { inboundSocks.settings = it }
 
-        inboundSocks.listen = inbound.listenAddress
+        // In HTTP-only mode the SOCKS inbound exists solely as the hev-tun / root
+        // tunnel target, and both of those connect over loopback. Honoring the
+        // 0.0.0.0 listen address here would publish a SOCKS proxy the user asked
+        // not to have (and on Xray that inbound also answers HTTP).
+        val socksIsInternalOnly = inbound.mode == LocalInboundMode.HTTP
+        inboundSocks.listen = if (socksIsInternalOnly) AppConfig.LOOPBACK else inbound.listenAddress
         inboundSocks.port = inbound.socksPort
         socksSettings.udp = inbound.socksUdpEnabled
         // On Xray the same credentials also protect HTTP requests hitting the
@@ -566,7 +572,7 @@ object CoreConfigManager {
             // The snapshot already resolves HTTP/SOCKS port collisions, so this
             // stays consistent with SettingsManager.getHttpPort().
             val httpPort = if (inbound.mode == LocalInboundMode.MIXED) {
-                inbound.socksPort + 1
+                LocalInboundSnapshot.neighborPort(inbound.socksPort)
             } else {
                 inbound.httpInboundPort
             }
