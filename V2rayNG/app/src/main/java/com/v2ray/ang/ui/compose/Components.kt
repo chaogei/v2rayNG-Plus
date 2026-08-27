@@ -244,11 +244,14 @@ fun EmptyState(
     icon: Painter,
     title: String,
     modifier: Modifier = Modifier,
-    hint: String? = null
+    hint: String? = null,
+    /** Insets the list it replaces would have reserved, e.g. room for a floating button. */
+    contentPadding: PaddingValues = PaddingValues(0.dp)
 ) {
     Column(
         modifier = modifier
             .fillMaxSize()
+            .padding(contentPadding)
             .padding(horizontal = 32.dp, vertical = 48.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center

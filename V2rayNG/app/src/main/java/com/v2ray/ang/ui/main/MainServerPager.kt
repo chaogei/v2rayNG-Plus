@@ -154,7 +154,9 @@ private fun ServerListPage(
             title = stringResource(
                 if (isSearching) R.string.empty_search_result else R.string.empty_server_list
             ),
-            hint = if (isSearching) null else stringResource(R.string.empty_server_list_hint)
+            hint = if (isSearching) null else stringResource(R.string.empty_server_list_hint),
+            // Same insets the list gets, so the text is not centered under the FAB.
+            contentPadding = contentPadding
         )
         return
     }
