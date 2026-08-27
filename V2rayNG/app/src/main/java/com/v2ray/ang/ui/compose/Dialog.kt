@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.selection.TextSelectionColors
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -111,7 +112,8 @@ data class InputField(
     val label: String,
     val value: String,
     val singleLine: Boolean = true,
-    val visualTransformation: VisualTransformation = VisualTransformation.None
+    val visualTransformation: VisualTransformation = VisualTransformation.None,
+    val keyboardOptions: KeyboardOptions = KeyboardOptions.Default
 )
 
 @Composable
@@ -140,6 +142,7 @@ fun InputDialog(
                         singleLine = field.singleLine,
                         maxLines = if (field.singleLine) 1 else 5,
                         visualTransformation = field.visualTransformation,
+                        keyboardOptions = field.keyboardOptions,
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedContainerColor = Color.Transparent,
                             unfocusedContainerColor = Color.Transparent,
