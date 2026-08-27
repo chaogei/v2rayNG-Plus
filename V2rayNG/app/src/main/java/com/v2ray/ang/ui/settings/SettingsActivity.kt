@@ -112,7 +112,7 @@ fun SettingsScreen(
     var enableRootMode by rememberMmkvBool(AppConfig.PREF_ROOT_MODE_ENABLE, false)
     var lanSharing by rememberMmkvBool(AppConfig.PREF_ROOT_LAN_SHARING, false)
 
-    var hevTunLogLevel by rememberMmkvString(AppConfig.PREF_HEV_TUNNEL_LOGLEVEL, "warning")
+    var hevTunLogLevel by rememberMmkvString(AppConfig.PREF_HEV_TUNNEL_LOGLEVEL, "warn")
     var hevTunRwTimeout by rememberMmkvString(AppConfig.PREF_HEV_TUNNEL_RW_TIMEOUT, "")
     var useHevTun by rememberMmkvBool(AppConfig.PREF_USE_HEV_TUNNEL, true)
 
@@ -124,7 +124,7 @@ fun SettingsScreen(
     var localAuthEnabled by rememberMmkvBool(AppConfig.PREF_LOCAL_AUTH_ENABLED, false)
     var socksUsername by rememberMmkvString(AppConfig.PREF_SOCKS_USERNAME, "")
     var socksPassword by rememberMmkvString(AppConfig.PREF_SOCKS_PASSWORD, "")
-    var socksEnableUdp by rememberMmkvBool(AppConfig.PREF_SOCKS_ENABLE_UDP, false)
+    var socksEnableUdp by rememberMmkvBool(AppConfig.PREF_SOCKS_ENABLE_UDP, true)
     var proxySharing by rememberMmkvBool(AppConfig.PREF_PROXY_SHARING, false)
     var localRedirEnabled by rememberMmkvBool(AppConfig.PREF_LOCAL_REDIR_ENABLED, false)
     var localRedirPort by rememberMmkvString(AppConfig.PREF_LOCAL_REDIR_PORT, AppConfig.PORT_REDIR)
