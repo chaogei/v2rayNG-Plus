@@ -510,34 +510,32 @@ object CoreConfigManager {
 
         val enableLocalProxy = forcedByHev || forcedBySocksRoot || MmkvManager.decodeSettingsBool(AppConfig.PREF_ENABLE_LOCAL_PROXY, true)
 
-        val mode = SettingsManager.getLocalInboundMode()
-        val listenAddress = SettingsManager.getLocalListenAddress()
-        val socksPort = SettingsManager.getSocksPort()
-        val authEnabled = SettingsManager.isLocalAuthEnabled()
-        val socksUsername = SettingsManager.getSocksUsername()
-        val socksPassword = SettingsManager.getSocksPassword()
-        val inboundSocks = v2rayConfig.inbounds[0]
-        if (inboundSocks.settings == null) {
-            inboundSocks.settings = V2rayConfig.InboundBean.InSettingsBean()
-        }
-
-        inboundSocks.listen = listenAddress
-        inboundSocks.port = socksPort
-        inboundSocks.settings?.udp = MmkvManager.decodeSettingsBool(AppConfig.PREF_SOCKS_ENABLE_UDP, true)
-        if (authEnabled && socksUsername != null && socksPassword != null) {
-            // On Xray the same credentials also protect HTTP requests hitting
-            // the socks inbound (mixed behavior).
-            inboundSocks.settings?.auth = "password"
-            inboundSocks.settings?.accounts = listOf(
+        // One immutable snapshot: every inbound preference is read from MMKV
+        // exactly once and the port/auth layout is derived in a single place.
+        val inbound = SettingsManager.getLocalInboundSnapshot()
+        val authAccounts = if (inbound.authEnabled && inbound.username != null && inbound.password != null) {
+            listOf(
                 V2rayConfig.InboundBean.InSettingsBean.SocksAccountBean(
-                    user = socksUsername,
-                    pass = socksPassword
+                    user = inbound.username,
+                    pass = inbound.password
                 )
             )
         } else {
-            inboundSocks.settings?.auth = "noauth"
-            inboundSocks.settings?.accounts = null
+            null
         }
+
+        val inboundSocks = v2rayConfig.inbounds[0]
+        val socksSettings = inboundSocks.settings
+            ?: V2rayConfig.InboundBean.InSettingsBean().also { inboundSocks.settings = it }
+
+        inboundSocks.listen = inbound.listenAddress
+        inboundSocks.port = inbound.socksPort
+        socksSettings.udp = inbound.socksUdpEnabled
+        // On Xray the same credentials also protect HTTP requests hitting the
+        // socks inbound (mixed behavior).
+        socksSettings.auth = if (authAccounts != null) "password" else "noauth"
+        socksSettings.accounts = authAccounts
+
         val fakedns = MmkvManager.decodeSettingsBool(AppConfig.PREF_FAKE_DNS_ENABLED) == true
         val sniffAllTlsAndHttp =
             MmkvManager.decodeSettingsBool(AppConfig.PREF_SNIFFING_ENABLED, true) != false
@@ -553,8 +551,8 @@ object CoreConfigManager {
 
         // The SOCKS inbound is kept whenever the mode includes SOCKS, and is
         // forced in VPN (hev-tun) and root modes where it is the tunnel target.
-        val socksRequired = forcedByHev || forcedBySocksRoot || mode != LocalInboundMode.HTTP
-        val httpRequired = when (mode) {
+        val socksRequired = forcedByHev || forcedBySocksRoot || inbound.mode != LocalInboundMode.HTTP
+        val httpRequired = when (inbound.mode) {
             // Xray's socks inbound natively accepts HTTP, no extra inbound needed.
             LocalInboundMode.MIXED -> !Utils.isXray()
             LocalInboundMode.SOCKS_HTTP, LocalInboundMode.HTTP -> true
@@ -562,26 +560,30 @@ object CoreConfigManager {
         }
 
         if (httpRequired) {
-            // getHttpInboundPort() already resolves collisions with the SOCKS
-            // port so this stays consistent with SettingsManager.getHttpPort().
-            val httpPort = if (mode == LocalInboundMode.MIXED) {
-                socksPort + 1
+            // Constructed directly instead of the previous Gson serialize/parse
+            // round-trip clone of the socks inbound: same JSON output, no
+            // reflection or intermediate string on the connect hot path.
+            // The snapshot already resolves HTTP/SOCKS port collisions, so this
+            // stays consistent with SettingsManager.getHttpPort().
+            val httpPort = if (inbound.mode == LocalInboundMode.MIXED) {
+                inbound.socksPort + 1
             } else {
-                SettingsManager.getHttpInboundPort()
+                inbound.httpInboundPort
             }
-            val inboundHttp = JsonUtil.fromJson(JsonUtil.toJson(inboundSocks), V2rayConfig.InboundBean::class.java)
-                ?: error("Failed to clone inbound template")
-            inboundHttp.tag = AppConfig.TAG_HTTP_INBOUND
-            inboundHttp.protocol = AppConfig.PROTOCOL_HTTP
-            inboundHttp.port = httpPort
-            inboundHttp.settings?.auth = null
-            inboundHttp.settings?.udp = null
-            // HTTP basic auth uses the same credentials as SOCKS; the cloned
-            // accounts list is kept when auth is enabled and cleared otherwise.
-            if (!authEnabled) {
-                inboundHttp.settings?.accounts = null
-            }
-            v2rayConfig.inbounds.add(inboundHttp)
+            v2rayConfig.inbounds.add(
+                V2rayConfig.InboundBean(
+                    tag = AppConfig.TAG_HTTP_INBOUND,
+                    port = httpPort,
+                    protocol = AppConfig.PROTOCOL_HTTP,
+                    listen = inbound.listenAddress,
+                    settings = V2rayConfig.InboundBean.InSettingsBean(
+                        userLevel = socksSettings.userLevel,
+                        // HTTP basic auth uses the same credentials as SOCKS.
+                        accounts = authAccounts
+                    ),
+                    sniffing = copySniffing(inboundSocks.sniffing)
+                )
+            )
         }
 
         if (!socksRequired) {
@@ -591,10 +593,10 @@ object CoreConfigManager {
         // Optional transparent redirect inbound (dokodemo-door). Traffic must be
         // redirected to this port externally (e.g. iptables REDIRECT), which
         // usually requires root.
-        if (enableLocalProxy && SettingsManager.isLocalRedirEnabled()) {
-            val redirPort = SettingsManager.getLocalRedirPort()
-            val usedPorts = v2rayConfig.inbounds.mapNotNull { it.port }.toSet()
-            if (redirPort in usedPorts) {
+        if (enableLocalProxy && inbound.redirEnabled) {
+            val redirPort = inbound.redirPort
+            val portInUse = v2rayConfig.inbounds.any { it.port == redirPort }
+            if (portInUse) {
                 LogUtil.w(AppConfig.TAG, "Transparent redirect port $redirPort conflicts with another local inbound, skipping redir inbound")
             } else {
                 v2rayConfig.inbounds.add(
@@ -602,16 +604,13 @@ object CoreConfigManager {
                         tag = AppConfig.TAG_REDIR_INBOUND,
                         port = redirPort,
                         protocol = AppConfig.PROTOCOL_DOKODEMO,
-                        listen = listenAddress,
+                        listen = inbound.listenAddress,
                         settings = V2rayConfig.InboundBean.InSettingsBean(
                             network = "tcp,udp",
                             followRedirect = true,
-                            userLevel = inboundSocks.settings?.userLevel
+                            userLevel = socksSettings.userLevel
                         ),
-                        sniffing = JsonUtil.fromJson(
-                            JsonUtil.toJson(inboundSocks.sniffing),
-                            V2rayConfig.InboundBean.SniffingBean::class.java
-                        )
+                        sniffing = copySniffing(inboundSocks.sniffing)
                     )
                 )
             }
@@ -629,6 +628,21 @@ object CoreConfigManager {
     }
 
     /**
+     * Deep-copy a sniffing block without the Gson serialize/parse round-trip
+     * previously used for cloning.
+     */
+    private fun copySniffing(source: V2rayConfig.InboundBean.SniffingBean?): V2rayConfig.InboundBean.SniffingBean? {
+        return source?.let {
+            V2rayConfig.InboundBean.SniffingBean(
+                enabled = it.enabled,
+                destOverride = ArrayList(it.destOverride),
+                metadataOnly = it.metadataOnly,
+                routeOnly = it.routeOnly
+            )
+        }
+    }
+
+    /**
      * Enable fake DNS when local DNS and fake DNS are both enabled.
      */
     private fun configureFakeDns(v2rayConfig: V2rayConfig) {
@@ -637,44 +651,6 @@ object CoreConfigManager {
         ) {
             v2rayConfig.fakedns = listOf(V2rayConfig.FakednsBean())
         }
-    }
-
-    /**
-     * Collect domain rules that target one outbound tag.
-     */
-    private fun collectUserRuleDomainsByTag(tag: String): ArrayList<String> {
-        val domain = ArrayList<String>()
-
-        val rulesetItems = MmkvManager.decodeRoutingRulesets()
-        rulesetItems?.forEach { key ->
-            if (key.enabled && key.outboundTag == tag && !key.domain.isNullOrEmpty()) {
-                key.domain?.forEach {
-                    domain.add(it)
-                }
-            }
-        }
-
-        return domain
-    }
-
-    /**
-     * Collect domain rules that target non-builtin outbound tags.
-     */
-    private fun collectCustomOutboundDomains(): ArrayList<String> {
-        val domain = ArrayList<String>()
-
-        val rulesetItems = MmkvManager.decodeRoutingRulesets()
-        rulesetItems?.forEach { key ->
-            if (key.enabled && !AppConfig.BUILTIN_OUTBOUND_TAGS.contains(key.outboundTag)
-                && !key.domain.isNullOrEmpty()
-            ) {
-                key.domain?.forEach {
-                    domain.add(it)
-                }
-            }
-        }
-
-        return domain
     }
 
     /**
@@ -781,148 +757,6 @@ object CoreConfigManager {
             v2rayConfig.policy = null
         }
     }
-
-    /*
-    /**
-     * Configure DNS servers, hosts, and DNS routing rules.
-     */
-    private fun configureDns(
-        v2rayConfig: V2rayConfig,
-        policyGroupBalancerTags: Map<String, String>,
-    ) {
-        val hosts = mutableMapOf<String, Any>()
-        val servers = ArrayList<Any>()
-
-        //remote Dns
-        val remoteDns = SettingsManager.getRemoteDnsServers()
-        val proxyDomain = (collectUserRuleDomainsByTag(AppConfig.TAG_PROXY) + collectCustomOutboundDomains()).distinct()
-        remoteDns.forEach {
-            servers.add(it)
-        }
-        if (proxyDomain.isNotEmpty()) {
-            servers.add(
-                V2rayConfig.DnsBean.ServersBean(
-                    address = remoteDns.first(),
-                    domains = proxyDomain,
-                )
-            )
-        }
-
-        // domestic DNS
-        val domesticDns = SettingsManager.getDomesticDnsServers()
-        val directDomain = collectUserRuleDomainsByTag(AppConfig.TAG_DIRECT)
-        val isCnRoutingMode = directDomain.contains(AppConfig.GEOSITE_CN)
-        val cnRegionFilter = { domain: String ->
-            domain.startsWith("geosite:") && (domain.endsWith("-cn") || domain.endsWith("@cn"))
-                    || domain == AppConfig.GEOSITE_CN
-        }
-        val finalDirectDomain = if (isCnRoutingMode) directDomain.filterNot {
-            cnRegionFilter(it)
-        } else directDomain
-        val domesticDnsTags = mutableListOf<String>()
-        domesticDns.forEachIndexed { index, element ->
-            val tag = AppConfig.TAG_DOMESTIC_DNS + index
-            servers.add(
-                V2rayConfig.DnsBean.ServersBean(
-                    address = element,
-                    domains = finalDirectDomain,
-                    skipFallback = true,
-                    tag = tag
-                )
-            )
-            domesticDnsTags.add(tag)
-        }
-        if (isCnRoutingMode) {
-            val geoipCn = arrayListOf(AppConfig.GEOIP_CN)
-            val cnRegionDomain = directDomain.filter { cnRegionFilter(it) }
-            domesticDns.forEachIndexed { index, element ->
-                val geositeCnDnsTag = AppConfig.TAG_DOMESTIC_DNS + index + "_cn_expect"
-                servers.add(
-                    V2rayConfig.DnsBean.ServersBean(
-                        address = element,
-                        domains = cnRegionDomain,
-                        expectIPs = geoipCn,
-                        skipFallback = true,
-                        tag = geositeCnDnsTag
-                    )
-                )
-                domesticDnsTags.add(geositeCnDnsTag)
-            }
-        }
-
-        //block dns
-        val blkDomain = collectUserRuleDomainsByTag(AppConfig.TAG_BLOCKED)
-        if (blkDomain.isNotEmpty()) {
-            hosts.putAll(blkDomain.map { it to AppConfig.LOOPBACK })
-        }
-
-        // hardcode googleapi rule to fix play store problems
-        hosts[AppConfig.GOOGLEAPIS_CN_DOMAIN] = AppConfig.GOOGLEAPIS_COM_DOMAIN
-
-        // hardcode popular Android Private DNS rule to fix localhost DNS problem
-        hosts[AppConfig.DNS_ALIDNS_DOMAIN] = AppConfig.DNS_ALIDNS_ADDRESSES
-        hosts[AppConfig.DNS_CISCO_SSE_DOMAIN] = AppConfig.DNS_CISCO_SSE_ADDRESSES
-        hosts[AppConfig.DNS_CISCO_UMBRELLA_DOMAIN] = AppConfig.DNS_CISCO_UMBRELLA_ADDRESSES
-        hosts[AppConfig.DNS_CLOUDFLARE_ONE_DOMAIN] = AppConfig.DNS_CLOUDFLARE_ONE_ADDRESSES
-        hosts[AppConfig.DNS_CLOUDFLARE_ONEDOT_DNS_DOMAIN] = AppConfig.DNS_CLOUDFLARE_ONEDOT_DNS_ADDRESSES
-        hosts[AppConfig.DNS_CLOUDFLARE_DNS_COM_DOMAIN] = AppConfig.DNS_CLOUDFLARE_DNS_COM_ADDRESSES
-        hosts[AppConfig.DNS_CLOUDFLARE_DNS_DOMAIN] = AppConfig.DNS_CLOUDFLARE_DNS_ADDRESSES
-        hosts[AppConfig.DNS_CLOUDFLARE_WARP_DOMAIN] = AppConfig.DNS_CLOUDFLARE_WARP_ADDRESSES
-        hosts[AppConfig.DNS_DNSPOD_DOH_DOMAIN] = AppConfig.DNS_DNSPOD_DOH_ADDRESSES
-        hosts[AppConfig.DNS_DNSPOD_DOT_DOMAIN] = AppConfig.DNS_DNSPOD_DOT_ADDRESSES
-        hosts[AppConfig.DNS_GOOGLE_DOMAIN] = AppConfig.DNS_GOOGLE_ADDRESSES
-        hosts[AppConfig.DNS_QUAD9_DOMAIN] = AppConfig.DNS_QUAD9_ADDRESSES
-        hosts[AppConfig.DNS_SB_DOMAIN] = AppConfig.DNS_SB_ADDRESSES
-        hosts[AppConfig.DNS_YANDEX_DOMAIN] = AppConfig.DNS_YANDEX_ADDRESSES
-
-        //User DNS hosts
-        val userHosts = MmkvManager.decodeSettingsString(AppConfig.PREF_DNS_HOSTS)
-        if (userHosts.isNotNullEmpty()) {
-            val userHostsMap = userHosts?.split(",")
-                ?.filter { it.isNotEmpty() }
-                ?.filter { it.contains(":") }
-                ?.associate { it.split(":").let { (k, v) -> k to v } }
-            if (userHostsMap != null) {
-                hosts.putAll(userHostsMap)
-            }
-        }
-
-        // DNS dns
-        v2rayConfig.dns = V2rayConfig.DnsBean(
-            servers = servers,
-            hosts = hosts,
-            tag = AppConfig.TAG_DNS,
-            enableParallelQuery = if ((domesticDns.size + remoteDns.size) > 2) true else null
-        )
-
-        // DNS routing
-        v2rayConfig.routing.rules.add(
-            V2rayConfig.RoutingBean.RulesBean(
-                outboundTag = AppConfig.TAG_DIRECT,
-                inboundTag = domesticDnsTags,
-                domain = null
-            )
-        )
-        val dnsProxyBalancerTag = policyGroupBalancerTags[AppConfig.TAG_PROXY]
-        if (dnsProxyBalancerTag != null) {
-            v2rayConfig.routing.rules.add(
-                V2rayConfig.RoutingBean.RulesBean(
-                    balancerTag = dnsProxyBalancerTag,
-                    inboundTag = arrayListOf(AppConfig.TAG_DNS),
-                    domain = null
-                )
-            )
-        } else {
-            v2rayConfig.routing.rules.add(
-                V2rayConfig.RoutingBean.RulesBean(
-                    outboundTag = AppConfig.TAG_PROXY,
-                    inboundTag = arrayListOf(AppConfig.TAG_DNS),
-                    domain = null
-                )
-            )
-        }
-    }
-    */
 
     /**
      * Configure DNS servers, hosts, and DNS routing rules.
@@ -1222,8 +1056,9 @@ object CoreConfigManager {
             MmkvManager.decodeSettingsString(AppConfig.PREF_ROUTING_DOMAIN_STRATEGY)
                 ?: "AsIs"
 
-        val rulesetItems = MmkvManager.decodeRoutingRulesets()
-        rulesetItems?.forEach { key ->
+        // Rulesets are decoded from MMKV once in CoreConfigContextBuilder and
+        // reused here, instead of re-parsing the ruleset JSON per consumer.
+        configContext.rulesetItems.forEach { key ->
             appendRoutingUserRule(configContext, key, v2rayConfig, policyGroupBalancerTags)
         }
     }

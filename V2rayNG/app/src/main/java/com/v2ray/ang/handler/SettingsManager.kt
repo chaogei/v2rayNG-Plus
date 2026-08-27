@@ -11,6 +11,7 @@ import com.v2ray.ang.AppConfig.GEOIP_PRIVATE
 import com.v2ray.ang.AppConfig.GEOSITE_PRIVATE
 import com.v2ray.ang.AppConfig.TAG_DIRECT
 import com.v2ray.ang.AppConfig.VPN
+import com.v2ray.ang.dto.LocalInboundSnapshot
 import com.v2ray.ang.dto.V2rayConfig
 import com.v2ray.ang.dto.entities.ProfileItem
 import com.v2ray.ang.dto.entities.RulesetItem
@@ -284,38 +285,55 @@ object SettingsManager {
     }
 
     /**
-     * Whether local inbound authentication (SOCKS user/pass + HTTP basic) is enabled.
-     * Requires the explicit toggle plus non-empty credentials.
+     * Read every local-inbound preference exactly once and derive the final
+     * listening layout (mode, ports with collisions resolved, listen address,
+     * auth). Hot paths consume this immutable snapshot instead of re-reading
+     * MMKV and re-deriving the same state per field.
      */
-    fun isLocalAuthEnabled(): Boolean {
-        if (MmkvManager.decodeSettingsBool(AppConfig.PREF_LOCAL_AUTH_ENABLED, false) != true) {
-            return false
-        }
-        val username = MmkvManager.decodeSettingsString(AppConfig.PREF_SOCKS_USERNAME)?.trim()
-        val password = MmkvManager.decodeSettingsString(AppConfig.PREF_SOCKS_PASSWORD)?.trim()
-        return !username.isNullOrEmpty() && !password.isNullOrEmpty()
-    }
-
-    fun getSocksUsername(): String? {
-        if (!isLocalAuthEnabled()) return null
-        return MmkvManager.decodeSettingsString(AppConfig.PREF_SOCKS_USERNAME)?.trim()?.takeIf { it.isNotEmpty() }
-    }
-
-    fun getSocksPassword(): String? {
-        if (!isLocalAuthEnabled()) return null
-        return MmkvManager.decodeSettingsString(AppConfig.PREF_SOCKS_PASSWORD)?.trim()?.takeIf { it.isNotEmpty() }
+    fun getLocalInboundSnapshot(): LocalInboundSnapshot {
+        val socksPort = getSocksPort()
+        val httpConfiguredPort = Utils.parseInt(MmkvManager.decodeSettingsString(AppConfig.PREF_HTTP_PORT), AppConfig.PORT_HTTP.toInt())
+        val credentials = readLocalAuthCredentials()
+        return LocalInboundSnapshot(
+            mode = getLocalInboundMode(),
+            listenAddress = getLocalListenAddress(),
+            socksPort = socksPort,
+            // A dedicated HTTP inbound must never collide with the SOCKS port;
+            // resolving it here keeps the generated inbound and every consumer
+            // of the effective HTTP port in agreement.
+            httpInboundPort = if (httpConfiguredPort == socksPort) socksPort + 1 else httpConfiguredPort,
+            authEnabled = credentials != null,
+            username = credentials?.first,
+            password = credentials?.second,
+            socksUdpEnabled = MmkvManager.decodeSettingsBool(AppConfig.PREF_SOCKS_ENABLE_UDP, true),
+            redirEnabled = isLocalRedirEnabled(),
+            redirPort = getLocalRedirPort(),
+        )
     }
 
     /**
-     * The port the HTTP inbound is configured to listen on (used when the
-     * local inbound mode opens a dedicated HTTP inbound). Falls back to
-     * SOCKS port + 1 when it would collide with the SOCKS port.
+     * Local auth credentials, or null when the toggle is off or either field
+     * is empty. Reads each MMKV key once (the previous toggle-check + getter
+     * combination read the auth keys up to four times per consumer).
      */
-    fun getHttpInboundPort(): Int {
-        val port = Utils.parseInt(MmkvManager.decodeSettingsString(AppConfig.PREF_HTTP_PORT), AppConfig.PORT_HTTP.toInt())
-        val socksPort = getSocksPort()
-        return if (port == socksPort) socksPort + 1 else port
+    private fun readLocalAuthCredentials(): Pair<String, String>? {
+        if (!MmkvManager.decodeSettingsBool(AppConfig.PREF_LOCAL_AUTH_ENABLED, false)) {
+            return null
+        }
+        val username = MmkvManager.decodeSettingsString(AppConfig.PREF_SOCKS_USERNAME)?.trim()?.takeIf { it.isNotEmpty() } ?: return null
+        val password = MmkvManager.decodeSettingsString(AppConfig.PREF_SOCKS_PASSWORD)?.trim()?.takeIf { it.isNotEmpty() } ?: return null
+        return username to password
     }
+
+    /**
+     * Whether local inbound authentication (SOCKS user/pass + HTTP basic) is enabled.
+     * Requires the explicit toggle plus non-empty credentials.
+     */
+    fun isLocalAuthEnabled(): Boolean = readLocalAuthCredentials() != null
+
+    fun getSocksUsername(): String? = readLocalAuthCredentials()?.first
+
+    fun getSocksPassword(): String? = readLocalAuthCredentials()?.second
 
     /**
      * The effective local port that serves HTTP proxy requests, used by the
@@ -324,15 +342,7 @@ object SettingsManager {
      *
      * Returns 0 when no local port serves HTTP in the current mode.
      */
-    fun getHttpPort(): Int {
-        return when (getLocalInboundMode()) {
-            // Xray's socks inbound natively accepts HTTP on the same port;
-            // other cores get a dedicated HTTP inbound on port+1.
-            LocalInboundMode.MIXED -> getSocksPort() + if (Utils.isXray()) 0 else 1
-            LocalInboundMode.SOCKS_HTTP, LocalInboundMode.HTTP -> getHttpInboundPort()
-            LocalInboundMode.SOCKS -> if (Utils.isXray()) getSocksPort() else 0
-        }
-    }
+    fun getHttpPort(): Int = getLocalInboundSnapshot().effectiveHttpPort
 
     /**
      * Address the local inbounds listen on. 0.0.0.0 when LAN sharing is
