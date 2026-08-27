@@ -47,8 +47,16 @@ object RootProxyManager {
         "::1/128", "fe80::/10", "fc00::/7", "ff00::/8"
     )
 
-    fun start(context: Context): Boolean {
+    /**
+     * @param ensureActive checked between the blocking script runs. The scripts sit in an
+     *   uninterruptible `Process.waitFor`, so this is the only place a stop arriving mid-setup
+     *   can be observed — without it the setup would install rules and a tun pointing at a
+     *   core that is already going away.
+     */
+    fun start(context: Context, ensureActive: () -> Unit = {}): Boolean {
+        ensureActive()
         teardown(context)
+        ensureActive()
         val script = buildTun2socksSetup(context) ?: return false
         val result = RootShell.runScript(context, "setup_rules.sh", script)
         if (!result.success) {
