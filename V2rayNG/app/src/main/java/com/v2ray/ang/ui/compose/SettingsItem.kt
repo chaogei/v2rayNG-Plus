@@ -29,6 +29,7 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import com.v2ray.ang.R
@@ -188,7 +189,13 @@ fun SettingsEditItem(
                 InputField(
                     label = title,
                     value = text,
-                    visualTransformation = VisualTransformation.None
+                    // Long comma-separated values (DNS servers, hosts) need to wrap.
+                    singleLine = keyboardNumber || isPassword,
+                    visualTransformation = if (isPassword) {
+                        PasswordVisualTransformation()
+                    } else {
+                        VisualTransformation.None
+                    }
                 )
             ),
             onFieldChange = { _, v -> text = v },
