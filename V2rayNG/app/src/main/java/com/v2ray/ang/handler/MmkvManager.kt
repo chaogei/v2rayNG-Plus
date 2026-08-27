@@ -400,12 +400,14 @@ object MmkvManager {
         serverList.remove(guid)
         encodeServerList(serverList, subId)
 
-        // Clean up storage
+        // Clean up storage (raw payloads included, or CUSTOM configs leak forever:
+        // the orphan cleaner only scans profile payload keys, never raw ones)
         if (getSelectServer() == guid) {
             mainStorage.remove(KEY_SELECTED_SERVER)
         }
         profileFullStorage.remove(guid)
         serverAffStorage.remove(guid)
+        serverRawStorage.remove(guid)
     }
 
     /**
@@ -424,6 +426,7 @@ object MmkvManager {
             }
             profileFullStorage.remove(guid)
             serverAffStorage.remove(guid)
+            serverRawStorage.remove(guid)
         }
 
         serverList.clear()

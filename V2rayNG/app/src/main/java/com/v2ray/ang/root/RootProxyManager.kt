@@ -117,8 +117,7 @@ object RootProxyManager {
             return null
         }
         val appUid = context.applicationInfo.uid
-        val socksUsername = SettingsManager.getSocksUsername()
-        val socksPassword = SettingsManager.getSocksPassword()
+        val (socksUsername, socksPassword) = SettingsManager.getLocalAuthCredentials() ?: (null to null)
         val port = SettingsManager.getSocksPort()
         val runDir = File(context.filesDir, AppConfig.ROOT_RUNTIME_DIR).apply { mkdirs() }
         val pidFile = File(runDir, "tun2socks.pid").absolutePath

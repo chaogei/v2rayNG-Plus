@@ -177,8 +177,7 @@ class PerAppProxyViewModel(application: Application) : BaseViewModel(application
                 )
             }
             if (content.isNullOrEmpty()) {
-                val proxyUsername = SettingsManager.getSocksUsername()
-                val proxyPassword = SettingsManager.getSocksPassword()
+                val (proxyUsername, proxyPassword) = SettingsManager.getLocalAuthCredentials() ?: (null to null)
                 val httpPort = SettingsManager.getHttpPort()
                 content = withContext(Dispatchers.IO) {
                     HttpUtil.getUrlContent(

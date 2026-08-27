@@ -5,10 +5,12 @@ import android.content.Context
 import android.content.Intent
 import android.os.IBinder
 import com.v2ray.ang.AppConfig
+import com.v2ray.ang.R
 import com.v2ray.ang.contracts.ServiceControl
 import com.v2ray.ang.core.CoreServiceManager
 import com.v2ray.ang.handler.AppLocaleManager
 import com.v2ray.ang.handler.NotificationManager
+import com.v2ray.ang.helper.MessageHelper
 import com.v2ray.ang.root.RootProxyManager
 import com.v2ray.ang.util.LogUtil
 import kotlinx.coroutines.CoroutineScope
@@ -71,6 +73,13 @@ class CoreRootService : Service(), ServiceControl {
             val started = RootProxyManager.start(this@CoreRootService) { ensureActive() }
             if (!started) {
                 LogUtil.e(AppConfig.TAG, "StartCore-Root: failed to start root mode, stopping")
+                // The core already reported a successful start; without this the UI shows
+                // "connected" then silently flips to disconnected with no reason.
+                MessageHelper.sendMsg2UI(
+                    this@CoreRootService,
+                    AppConfig.MSG_STATE_START_FAILURE,
+                    getString(R.string.toast_root_setup_failed),
+                )
                 stopService()
             }
         }

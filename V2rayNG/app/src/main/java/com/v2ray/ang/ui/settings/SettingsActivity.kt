@@ -503,7 +503,11 @@ fun SettingsScreen(
                     values = localListenAddressValues,
                     selectedValue = if (proxySharing) AppConfig.ANY_ADDRESS else AppConfig.LOOPBACK,
                     enabled = effectiveLocalProxy,
-                    onSelected = { proxySharing = it == AppConfig.ANY_ADDRESS }
+                    onSelected = {
+                        val sharing = it == AppConfig.ANY_ADDRESS
+                        proxySharing = sharing
+                        viewModel.warnIfUnauthenticatedLanSharing(sharing, localAuthInEffect && localAuthEnabled)
+                    }
                 )
                 SettingsSwitchItem(
                     title = stringResource(R.string.title_pref_dynamic_socks_port),

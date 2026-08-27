@@ -373,9 +373,12 @@ object SettingsManager {
      */
     fun isLocalAuthEnabled(): Boolean = readLocalAuthCredentials() != null
 
-    fun getSocksUsername(): String? = readLocalAuthCredentials()?.first
-
-    fun getSocksPassword(): String? = readLocalAuthCredentials()?.second
+    /**
+     * Local auth credentials as one (username, password) pair, or null when the
+     * toggle is off or either field is empty. Reads each MMKV key exactly once;
+     * every consumer that needs both values goes through this single call.
+     */
+    fun getLocalAuthCredentials(): Pair<String, String>? = readLocalAuthCredentials()
 
     /**
      * The effective local port that serves HTTP proxy requests, used by the

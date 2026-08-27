@@ -243,6 +243,7 @@
     <string name="title_pref_proxy_sharing_enabled">允許來自區域網路的連線</string>
     <string name="summary_pref_proxy_sharing_enabled">其他裝置可以透過您的 IP 位址連線到本機代理。請只在受信任的網路中啟用，以避免未經授權的連線。</string>
     <string name="toast_warning_pref_proxysharing_short">已允許來自區域網路的連線。請確認目前使用的是受信任的網路。</string>
+    <string name="toast_warning_pref_proxysharing_unauthenticated">本機代理將在無密碼的情況下接受區域網路連線。除非網路完全可信，請啟用本機代理驗證</string>
 
     <string name="title_pref_socks_port">本機代理埠</string>
     <string name="title_pref_enable_local_proxy">啟用本機代理</string>
@@ -356,6 +357,9 @@
     <string name="title_root_mode_enabled">啟用 Root 模式 (僅限 Root 使用者)</string>
     <string name="summary_root_mode_enabled">使用 Root 權限實作底層透明代理。Root 模式不使用 Android 的 VPN 服務，而是直接處理網路流量。啟用期間，一般模式、個別應用程式路由及相關 VPN 設定不會生效。</string>
     <string name="toast_root_required">此功能需要 Root 權限</string>
+    <string name="toast_root_setup_failed">Root 模式路由規則安裝失敗，服務已停止</string>
+    <string name="toast_vpn_permission_missing">VPN 權限遺失或已被系統撤銷。請開啟應用程式並重新連線以授權</string>
+    <string name="toast_vpn_interface_failed">無法建立 VPN 介面，可能有其他 VPN 應用程式正在佔用</string>
     <string name="title_root_lan_sharing">與區域網路 / 熱點裝置共用 VPN (僅限 Root 使用者)</string>
     <string name="summary_root_lan_sharing">將 Wi-Fi 熱點和 USB 網路共享裝置的流量透過 VPN 轉送。</string>
 

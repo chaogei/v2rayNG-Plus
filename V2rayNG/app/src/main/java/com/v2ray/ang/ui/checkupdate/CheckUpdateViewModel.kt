@@ -51,7 +51,11 @@ class CheckUpdateViewModel(application: Application) : BaseViewModel(application
                 }
             } catch (e: Exception) {
                 LogUtil.e(AppConfig.TAG, "Failed to check for updates", e)
-                toastError(R.string.toast_failure)
+                // Surface the reason (unreachable, rate limit, bad response) instead
+                // of a bare "Failure" that gives the user nothing to act on.
+                val base = getString(R.string.toast_failure)
+                val detail = e.message?.takeIf { it.isNotBlank() }
+                toastError(if (detail != null) "$base\n$detail" else base)
             }
         }
     }

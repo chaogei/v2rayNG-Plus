@@ -243,6 +243,7 @@
     <string name="title_pref_proxy_sharing_enabled">允许来自局域网的连接</string>
     <string name="summary_pref_proxy_sharing_enabled">其他设备可以使用 socks/http 协议通过您的 IP 地址连接到代理, 仅在受信任的网络中启用以避免未经授权的连接</string>
     <string name="toast_warning_pref_proxysharing_short">允许来自局域网的连接，请确保处于受信网络</string>
+    <string name="toast_warning_pref_proxysharing_unauthenticated">本地代理将无密码接受局域网连接。除非网络完全可信，请开启本地代理认证</string>
 
     <string name="title_pref_socks_port">本地 SOCKS 端口</string>
     <string name="title_pref_enable_local_proxy">启用本地代理</string>
@@ -356,6 +357,9 @@
     <string name="title_root_mode_enabled">启用 Root 模式 (仅限 Root 用户)</string>
     <string name="summary_root_mode_enabled">使用 Root 权限实现底层透明代理。Root 模式不使用 Android 的 VPN 服务，而是直接处理网络流量。启用期间，常规模式、应用分流及相关 VPN 设置不会生效。</string>
     <string name="toast_root_required">此功能需要 Root 权限</string>
+    <string name="toast_root_setup_failed">Root 模式路由规则安装失败，服务已停止</string>
+    <string name="toast_vpn_permission_missing">VPN 权限缺失或已被系统撤销。请打开应用并重新连接以授权</string>
+    <string name="toast_vpn_interface_failed">无法建立 VPN 接口，可能有其他 VPN 应用正在占用</string>
     <string name="title_root_lan_sharing">与局域网 / 热点设备共享 VPN (仅限 Root 用户)</string>
     <string name="summary_root_lan_sharing">将 Wi-Fi 热点和 USB 网络共享设备的流量通过 VPN 转发。</string>
 
