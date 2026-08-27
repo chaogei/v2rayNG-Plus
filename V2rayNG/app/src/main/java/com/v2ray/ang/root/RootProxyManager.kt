@@ -212,8 +212,11 @@ object RootProxyManager {
             appendLine("  address: '${AppConfig.LOOPBACK}'")
             appendLine("  udp: 'udp'")
             if (socksUsername != null && socksPassword != null) {
-                appendLine("  username: '$socksUsername'")
-                appendLine("  password: '$socksPassword'")
+                // YAML single-quoted scalars escape a quote by doubling it; without
+                // this a credential containing ' breaks the config and hev refuses
+                // to start, taking the whole root tunnel down.
+                appendLine("  username: '${socksUsername.replace("'", "''")}'")
+                appendLine("  password: '${socksPassword.replace("'", "''")}'")
             }
             appendLine("  tcp-fastopen: true")
         }
