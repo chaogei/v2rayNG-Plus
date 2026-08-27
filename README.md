@@ -87,6 +87,22 @@ echo "sdk.dir=<你的 Android SDK 路径>" > local.properties
 
 ---
 
+## 性能优化
+
+在本地入站增强之后，对连接 / 切换节点 / 网络切换重连时的**配置生成热路径**做了一轮针对性优化（只动逻辑质量，不改任何路由语义与入站行为）：
+
+- **节点解析从 O(标签数 × 节点数) 降到 O(节点数)**：`CoreConfigContextBuilder` 原先每解析一个路由标签 / 代理链成员 / 兜底标签，都要把全部节点从 MMKV 逐个 Gson 反序列化再线性扫描（`getServerViaRemarks`）。现在每次构建配置最多全量解码一次，并建一个 remarks → 节点 的索引（惰性构建，没有自定义标签时完全不触发），后续查找都是 O(1)。节点多、路由规则多时切换节点明显更快。
+- **路由规则集只解析一次**：用户路由规则 JSON 原先在出站解析、DNS 分流、路由规则生成三处各自 `decodeRoutingRulesets()`（三次 Gson 解析）。现在在 `CoreConfigContextBuilder` 解析一次后放进 `CoreConfigContext.rulesetItems`，三个消费方共用同一份不可变列表。
+- **本地入站设置改为不可变快照**：新增 `LocalInboundSnapshot`（`SettingsManager.getLocalInboundSnapshot()`），模式、监听地址、SOCKS/HTTP/redir 端口、认证等每个 MMKV 键只读一次，端口冲突和认证有效性只推导一次；`configureInbounds()` 与 `getHttpPort()` 都消费同一快照，杜绝了「生成的入站端口」与「应用自用 HTTP 端口」两处推导不一致的可能。认证三键的读取也从原先最多 4 次合并为 1 次。
+- **去掉热路径上的 Gson 序列化往返**：HTTP 入站原先通过「把 SOCKS 入站序列化成 JSON 再反序列化」来克隆，现在直接构造目标对象（含 sniffing 深拷贝），产物 JSON 完全一致，但不再有反射和中间字符串分配。
+- **死代码清理**：移除只被注释块引用的 `collectUserRuleDomainsByTag` / `collectCustomOutboundDomains` 及整段注释掉的旧版 `configureDns`，热路径文件更易审查。
+
+用户可感知的变化：节点/订阅数量较多（几百个）且配置了自定义路由标签或代理链时，点击连接、切换节点、网络切换重连的配置生成阶段更快、更稳定；行为（四种入站模式、端口、认证、监听地址）与优化前完全一致，`assembleFdroidDebug` 编译验证通过。
+
+**已知限制**：本环境无 Android 真机/模拟器，以上为代码路径层面的复杂度与分配优化，未做真机 profiling 数据对比。
+
+---
+
 ## 安全注意
 
 - **监听地址**：默认 `127.0.0.1` 仅本机可用。改为 `0.0.0.0` 后，**同一局域网内的任何设备都能连接你的代理**，请只在可信网络中开启，并强烈建议同时开启本地认证。
