@@ -100,6 +100,23 @@ echo "sdk.dir=<你的 Android SDK 路径>" > local.properties
 - **日夜两套**：日间玻璃偏亮白、夜间偏深灰蓝，`drawable(-night)/bg_window_glass.xml` 让窗口第一帧就是同款渐变，文字对比度保持 Material 默认 on-color，可读性达标。
 - **已知限制**：云端环境无真机/模拟器，无法截图预览；菜单/抽屉等独立窗口在所有版本均用较高不透明度（88–94%）保证可读性，仅对话框有真实模糊。
 
+### 主题配色（Theme presets）
+
+在毛玻璃材质之上提供 6 套可切换的预设配色（`ui/compose/ThemePresets.kt`），每套都有日间 + 夜间两组色板，并驱动同一套玻璃 tokens：
+
+| 预设 | 说明 |
+| --- | --- |
+| 琥珀橙 Amber（默认） | 与原品牌橙一致，保持出厂观感 |
+| 午夜蓝 Midnight Blue | 皇家蓝 + 青色光晕 |
+| 极光绿 Aurora Green | 翠绿 + 青蓝极光光晕 |
+| 樱花粉 Sakura Pink | 玫瑰粉 + 紫罗兰光晕 |
+| 石墨紫 Graphite Purple | 紫罗兰 + 靛蓝光晕 |
+| 冷灰银 Silver Gray | 低饱和中性钢灰，适合低干扰使用 |
+
+- **切换方式**：设置 → 用户界面设置 → **主题配色**，点选即时生效（Compose 主题直接重组，无需重启）；选择持久化到 MMKV（`pref_ui_theme_preset`），重启后保留。
+- **与毛玻璃的配对**：每套预设只替换 Material3 的 primary / secondary / tertiary 强调色组和背景三个品牌色光晕，中性 surface 底色全部共用，再统一经 `toGlassScheme()` 玻璃化——玻璃材质（半透明度、细描边、圆角）在所有主题下完全一致，变的只有主色、强调件（FAB、开关、Tab 指示、选中节点描边、节点类型文字）和背景光晕。
+- **动态取色**：「莫奈取色 / Material You」（Android 12+）仍然是一个选项，开启时按系统壁纸取色并推导光晕；**选择任一预设会自动关闭动态取色**，反之打开动态取色则覆盖预设。
+
 ---
 
 ## 性能优化
