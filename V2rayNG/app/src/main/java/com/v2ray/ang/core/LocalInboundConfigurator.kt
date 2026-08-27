@@ -30,6 +30,14 @@ object LocalInboundConfigurator {
         val forcedByHev: Boolean get() = vpn && useHev
         val forcedBySocksRoot: Boolean get() = rootMode || rootLanSharing
         val enableLocalProxy: Boolean get() = forcedByHev || forcedBySocksRoot || enableLocalProxyPref
+
+        /**
+         * When the SOCKS inbound is the tunnel target (hev-tun VPN or root mode),
+         * every UDP packet of the device - including DNS - arrives as a SOCKS UDP
+         * associate. Honoring a disabled "SOCKS UDP" preference there would break
+         * DNS and kill the whole tunnel, so UDP is forced on for those runs.
+         */
+        val forceSocksUdp: Boolean get() = forcedByHev || forcedBySocksRoot
         val needTun: Boolean get() = vpn && !useHev
     }
 
@@ -74,7 +82,7 @@ object LocalInboundConfigurator {
                     listen = if (socksIsInternalOnly) AppConfig.LOOPBACK else snapshot.listenAddress,
                     settings = V2rayConfig.InboundBean.InSettingsBean(
                         auth = if (authAccounts != null) "password" else "noauth",
-                        udp = snapshot.socksUdpEnabled,
+                        udp = snapshot.socksUdpEnabled || flags.forceSocksUdp,
                         userLevel = userLevel,
                         accounts = authAccounts,
                     ),

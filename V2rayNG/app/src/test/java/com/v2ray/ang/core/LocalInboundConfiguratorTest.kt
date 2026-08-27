@@ -86,6 +86,44 @@ class LocalInboundConfiguratorTest {
     }
 
     @Test
+    fun socksUdpDisabled_honoredInPlainProxyMode() {
+        val result = applyLayout(snapshot(socksUdpEnabled = false))
+        assertEquals(false, result.inbounds.single { it.protocol == "socks" }.settings?.udp)
+    }
+
+    @Test
+    fun socksUdpDisabled_forcedOnWhenHevTunnelTargetsSocks() {
+        val result = applyLayout(
+            snapshot(socksUdpEnabled = false),
+            flags = LocalInboundConfigurator.InboundRuntimeFlags(vpn = true, useHev = true),
+        )
+        // hev-socks5-tunnel funnels every UDP packet (incl. DNS) through the SOCKS
+        // inbound; a disabled UDP preference must not break the whole tunnel.
+        assertEquals(true, result.inbounds.single { it.protocol == "socks" }.settings?.udp)
+    }
+
+    @Test
+    fun socksUdpDisabled_forcedOnInRootMode() {
+        val result = applyLayout(
+            snapshot(socksUdpEnabled = false),
+            flags = LocalInboundConfigurator.InboundRuntimeFlags(rootMode = true),
+        )
+        assertEquals(true, result.inbounds.single { it.protocol == "socks" }.settings?.udp)
+    }
+
+    @Test
+    fun xrayTunMode_doesNotForceSocksUdp() {
+        val result = LocalInboundConfigurator.apply(
+            existing = listOf(socksTemplate(), tunInbound()),
+            snapshot = snapshot(socksUdpEnabled = false),
+            flags = LocalInboundConfigurator.InboundRuntimeFlags(vpn = true, useHev = false),
+        )
+        // The xray tun inbound carries the device traffic itself; the SOCKS inbound
+        // is just a side listener there, so the preference still applies.
+        assertEquals(false, result.inbounds.single { it.protocol == "socks" }.settings?.udp)
+    }
+
+    @Test
     fun incompleteAuth_staysNoauth() {
         val result = applyLayout(
             snapshot(authEnabled = true, username = "user", password = " "),
@@ -185,6 +223,7 @@ class LocalInboundConfiguratorTest {
         password: String? = null,
         redirEnabled: Boolean = false,
         redirPort: Int = 10810,
+        socksUdpEnabled: Boolean = true,
     ) = LocalInboundSnapshot(
         mode = mode,
         listenAddress = listenAddress,
@@ -193,7 +232,7 @@ class LocalInboundConfiguratorTest {
         authEnabled = authEnabled,
         username = username,
         password = password,
-        socksUdpEnabled = true,
+        socksUdpEnabled = socksUdpEnabled,
         redirEnabled = redirEnabled,
         redirPort = redirPort,
     )
