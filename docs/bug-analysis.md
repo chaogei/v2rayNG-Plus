@@ -2,19 +2,19 @@
 
 分析对象：本仓库 `main`（基线为 `a88a61e` 的上游导入，其后 10 个 fork 提交）。
 分析方式：逐文件读代码 + 与基线 `git diff` 交叉对照 + 资源/清单/模板 JSON 核对。
-构建环境无 Android SDK，无法执行 `./gradlew test` 或装机验证，因此下文每一条都只写代码本身能证明的结论；无法证明的猜测一律没有写进来。
+首轮分析时构建环境无 Android SDK；第二轮修复时装好了 SDK 37 + Gradle 9.5.1 与 `libv2ray.aar`，`assembleFdroidDebug` 与 `testFdroidDebugUnitTest` 均通过。仍无真机，运行期行为未做装机验证。
 
-共 20 条。已修 10 条（含 1 条文档），未修 10 条。
+共 20 条，全部已修（含 1 条文档）。
 
-**标注约定**：`【已修】` 表示本次已提交补丁；`(fork 引入)` 表示该问题由本 fork 的改动带来，其余为基线已有。
+**标注约定**：`【已修】` 表示已提交补丁；`(fork 引入)` 表示该问题由本 fork 的改动带来，其余为基线已有。
 
 ---
 
 ## 一、崩溃 / 无响应
 
-### 1. root 模式停止时在主线程阻塞等待 root 脚本，可触发 ANR
+### 1.【已修】root 模式停止时在主线程阻塞等待 root 脚本，可触发 ANR
 
-- **严重度**：崩溃/无响应（未修）
+- **严重度**：崩溃/无响应
 - **涉及**：`service/CoreRootService.kt#onDestroy`、`root/RootProxyManager.kt#stop/teardown`、`root/RootShell.kt#exec`
 - **触发条件**：root 模式下停止服务（或切节点重启）。
 - **为什么是 bug**：`onDestroy` 运行在主线程，里面串了两段阻塞操作：
@@ -28,7 +28,7 @@
 ```
 
   `setupJob` 里跑的是 `RootShell.runScript` → `Process.waitFor(30, SECONDS)`。协程取消不会中断这个阻塞 IO 调用，所以 `cancelAndJoin()` 实际要等脚本自己结束；而 setup 脚本内部还有 `i=0; while [ $i -lt 20 ]; do ... sleep 0.3; done` 这段最长 6 秒的等待。紧接着 `RootProxyManager.stop()` 又同步执行一遍 teardown 脚本（同样最长 30 秒超时）。主线程连续阻塞 5 秒以上就会被系统判定 ANR。
-- **建议修法**：把 onDestroy 的清理搬到服务自己的后台线程，并在服务停止前用一个 `stopping` 标志让 setup 协程在每个脚本之间检查取消点（`ensureActive()`），而不是靠 `cancelAndJoin` 去打断不可中断的 `waitFor`。若必须保证"规则先于核心移除"，把整段清理放进一个带超时的 `goAsync`/`WorkManager` 式收尾任务，onDestroy 只负责触发。
+- **修法**：清理搬到 `CoreRootService` 自己的后台协程作用域，`onDestroy` 只负责触发（`startTeardown()`，用 `AtomicBoolean` 保证只跑一次）。正常停止走 `stopService()`：先异步收尾，收尾完成后才 `stopSelf()`——前台服务在这期间保活守护进程，避免进程先死、iptables 规则留在系统里断网。顺序仍是"先移除规则、再停核心"。`RootProxyManager.start()` 新增 `ensureActive: () -> Unit` 参数，在两段阻塞脚本之间检查取消点（协程取消打不断 `Process.waitFor`，脚本之间是唯一能观察到停止的地方）。
 
 ---
 
@@ -79,9 +79,9 @@ appendLine("  password: '$socksPassword'")
   写出去的 `tun2socks.yml` 语法就坏了，hev-socks5-tunnel 解析失败直接退出，setup 脚本随后 `ip link show $TUN` 检测不到设备而失败并回滚——用户看到的是"root 模式起不来"，日志里也只有一行脚本输出。（配置内容走 `<<'HEVCFG'` 引号 heredoc，所以不构成 shell 注入，只是 YAML 破损。）
 - **修法**：与 `TProxyService` 一致，写入前 `replace("'", "''")`。
 
-### 6. 动态 SOCKS 端口是进程内静态量，UI 进程和守护进程各生成一份
+### 6.【已修】动态 SOCKS 端口是进程内静态量，UI 进程和守护进程各生成一份
 
-- **严重度**：功能错误（未修）
+- **严重度**：功能错误
 - **涉及**：`handler/SettingsManager.kt#runtimeSocksPort/getSocksPort/refreshRuntimeSocksPort`、`core/LauncherManager.kt:96`、`AndroidManifest.xml`
 - **触发条件**：打开"动态 SOCKS 端口"（`PREF_DYNAMIC_SOCKS_PORT`），本地入站模式为 MIXED 或仅 SOCKS。
 - **为什么是 bug**：`runtimeSocksPort` 是 `SettingsManager` 这个 object 的字段，只存在于内存，不落 MMKV。所有服务都跑在 `:RunSoLibV2RayDaemon`（清单里 `CoreVpnService` / `CoreProxyOnlyService` / `CoreRootService` / `SubscriptionUpdateService` / `QSTileService` 全部带 `android:process=":RunSoLibV2RayDaemon"`），而 `MainActivity` 及其余设置类 Activity 在默认进程。于是：
@@ -90,11 +90,11 @@ appendLine("  password: '$socksPassword'")
   - UI 进程后续所有走本地代理的功能拿到的都是 A：`UserAssetActivity`（geo 文件下载）、`PerAppProxyViewModel`（应用列表拉取）、`UpdateCheckerManager`（检查更新）、`AngConfigManager`（订阅更新，若在 UI 进程触发）都会连 `127.0.0.1:A`，那里没人监听。
 
   同时"动态"本身也没生效：守护进程只在 `MSG_STATE_RESTART` 那条路径（`ReceiveMessageHandler` → `LauncherManager.startService`）才会刷新，从主界面启动时它一直复用第一次生成的 B，直到进程被杀。
-- **建议修法**：让随机端口有唯一权威来源——生成后写入 MMKV（多进程模式已开启，`MMKV.MULTI_PROCESS_MODE`），`getSocksPort()` 从 MMKV 读；`refreshRuntimeSocksPort()` 改为只在真正生成配置的守护进程里调用（`CoreServiceManager.doStartCoreLoop` 之前），并顺手覆盖 MMKV 里的值。这样 UI 进程读到的永远是核心当前监听的端口。
+- **修法**：随机端口写入 MMKV（`AppConfig.PREF_RUNTIME_SOCKS_PORT`，settings 库已是 `MMKV.MULTI_PROCESS_MODE`）作为唯一权威来源，`getSocksPort()` 从 MMKV 读，进程内静态字段删除。刷新只由守护进程做：`LauncherManager` 里那次（UI 进程）删掉，改成三个服务各自在 `onStartCommand` 开头调 `CoreServiceManager.refreshRuntimeSocksPort()`，核心运行中直接跳过。放在 `onStartCommand` 而不是 `doStartCoreLoop` 里，是因为 hev-tun 配置和 VPN 的"附加 HTTP 代理"都在 `startCoreLoop` **之前**就读了端口，在那之后刷新会让它们指向旧端口。
 
-### 7. 切换节点的重启是"异步停 + 固定 500ms + 起"，慢一点就整条断开
+### 7.【已修】切换节点的重启是"异步停 + 固定 500ms + 起"，慢一点就整条断开
 
-- **严重度**：功能错误 / 竞态（未修）
+- **严重度**：功能错误 / 竞态
 - **涉及**：`ui/main/MainActivity.kt#setSelectServer`、`core/CoreServiceManager.kt#stopCoreLoop / startCoreLoop / ReceiveMessageHandler`
 - **触发条件**：运行中点列表里的另一个节点；核心 `stopLoop()` 耗时超过 500 ms（节点多、连接多、低端机时容易发生）。
 - **为什么是 bug**：链路是 `setSelectServer` → `LauncherManager.restartService` → 守护进程收到 `MSG_STATE_RESTART`：
@@ -112,7 +112,7 @@ appendLine("  password: '$socksPassword'")
 ```
 
   而 `stopCoreLoop()` 里的 `coreController.stopLoop()` 是丢进 `CoroutineScope(Dispatchers.IO)` 异步执行的，函数立刻返回。500 ms 是一个没有任何确认的固定猜测：如果这时核心还没停干净，新一轮 `startCoreLoop()` 第一句 `if (isRunning()) { ...; return false }` 直接返回 false，`CoreVpnService.startService()` 收到 false 后调用 `stopAllService()`——用户的操作是"换个节点"，得到的结果是"整个断开"，且没有重试。
-- **建议修法**：`stopCoreLoop()` 返回一个可等待的句柄（把 `stopLoop()` 的协程 Job 暴露出去），重启流程 `join()` 它而不是 `delay(500)`；再给 `startCoreLoop` 加一个有上限的重试（例如每 200 ms 轮询 `isRunning()`，最多 3 秒），失败才走 `stopAllService`。
+- **修法**：`stopCoreLoop()` 把 `stopLoop()` 的协程 Job 记在 `CoreServiceManager.stopJob` 上（各服务的 `stopService()` 内部调用它，返回值传不出来，所以放字段而不是改返回类型）。重启流程用 `awaitCoreStopped()` 挂起等待——`join()` 该 Job 后再轮询 `isRunning()`，3 秒封顶——替掉 `delay(500)`。`startCoreLoop()` 的首句改成 `awaitPendingStop()`：只有在确实有停止在途（`stopJob != null`）时才以 200 ms 步长最多等 3 秒，没有在途停止时仍然立刻返回 false，不会让"运行中重复点启动"白等。
 
 ### 8.【已修】密码类设置在输入对话框里明文显示
 
@@ -150,25 +150,26 @@ appendLine("  password: '$socksPassword'")
 - **为什么是 bug**：`rememberMmkvString` 每次写入都会 `SettingsChangeManager.notifySettingChanged(key)`，`notifySettingChanged` 里 `if (key !in uiOnlyKeys) makeRestartService()`。fork 新加的 `PREF_UI_THEME_PRESET` 没有进 `uiOnlyKeys`（相邻的 `PREF_DYNAMIC_COLOR`、`PREF_UI_MODE_NIGHT` 都在），于是换个颜色就把重启标志置上，回到主界面时 VPN 断一次重连。
 - **修法**：把 `PREF_UI_THEME_PRESET` 加入 `uiOnlyKeys`。
 
-### 12. 认证开关打开但凭据为空时，UI 显示"已启用"而配置里是 noauth (fork 引入)
+### 12.【已修】认证开关打开但凭据为空时，UI 显示"已启用"而配置里是 noauth (fork 引入)
 
-- **严重度**：状态不一致 + 安全（未修）
+- **严重度**：状态不一致 + 安全
 - **涉及**：`ui/settings/SettingsActivity.kt:491-515`、`ui/settings/SettingsViewModel.kt#warnIfLocalAuthCredentialsMissing`、`handler/SettingsManager.kt#readLocalAuthCredentials`
 - **触发条件**：打开认证开关但没填完凭据；或者先填好凭据、开好开关，之后再把用户名清空。
 - **为什么是 bug**：`readLocalAuthCredentials()` 要求开关为 true **且**两个字段都非空，否则返回 null → `auth = "noauth"`、`accounts = null`。UI 侧只在 `onCheckedChange` 里 `if (it) warnIfLocalAuthCredentialsMissing(...)` 弹一次 toast；用户名/密码两个 `SettingsEditItem` 的 `onValueChanged` 完全不做校验。结果是开关一直显示"打开"，但代理实际无认证——配合 0.0.0.0 监听就是用户以为受保护、实际是开放代理。
-- **建议修法**：把凭据完整性做成派生状态：开关行的 summary 在凭据不全时改成一句显式的"未生效（凭据不完整）"，并在用户名/密码的 `onValueChanged` 里复用 `warnIfLocalAuthCredentialsMissing`。更彻底的做法是凭据不全时不允许开关保持 true。
+- **修法**：凭据完整性做成派生状态 `localAuthInEffect`，开关行的 summary 在开着但凭据不全时换成 `summary_pref_local_auth_incomplete`（"未生效：需同时填写下方的用户名和密码…"），用户名/密码的 `onValueChanged` 也复用 `warnIfLocalAuthCredentialsMissing`，清空一项立刻有提示。
+- **没有做"凭据不全就不允许开关为 true"**：这两个输入框的 `enabled` 就是 `localAuthEnabled`，开关一旦被强制关掉，用户反而没法进去补凭据了。要走那条路得先把输入框从开关上解耦，属于 UI 结构改动，不在本次范围内。
 
-### 13. HTTP 端口与 SOCKS 端口冲突时运行期回退，设置页仍显示旧值 (fork 引入)
+### 13.【已修】HTTP 端口与 SOCKS 端口冲突时运行期回退，设置页仍显示旧值 (fork 引入)
 
-- **严重度**：状态不一致（未修）
+- **严重度**：状态不一致
 - **涉及**：`handler/SettingsManager.kt#getLocalInboundSnapshot`、`ui/settings/SettingsActivity.kt#validateLocalPort` 调用处
 - **触发条件**：让 `PREF_HTTP_PORT` 等于 SOCKS 端口（例如先在 MIXED 模式下改 SOCKS 端口——此时 HTTP 端口输入框是禁用的、也不参与冲突校验——再切回 SOCKS+HTTP）。
 - **为什么是 bug**：快照里 `httpInboundPort = if (httpConfiguredPort == socksPort) neighborPort(socksPort) else httpConfiguredPort`，核心监听的是回退后的端口，而设置页 `httpPort` 显示的是 MMKV 里的原值。用户按界面上的端口去配浏览器代理会连不上，界面上也没有任何提示。UI 的冲突校验只在"当前模式确实有独立 HTTP 端口"时才把对方端口传进 `validateLocalPort`，所以它拦不住跨模式产生的这种冲突。
-- **建议修法**：把冲突解决从"运行期静默回退"改成"入口处收敛"——切换本地入站模式时若检测到 `httpPort == socksPort`，当场把 `PREF_HTTP_PORT` 规范化成 `neighborPort(socksPort)` 并写回 MMKV，让界面和核心看到同一个值；或者在设置页把实际生效端口作为该行的 summary 显示出来。
+- **修法**：入口处收敛。`SettingsViewModel.normalizeHttpPortOnModeChange()` 在切到"有独立 HTTP 端口"的模式时检测 `httpPort == socksPort`，当场把 `PREF_HTTP_PORT` 写成 `LocalInboundSnapshot.neighborPort(socksPort)`（经由 `rememberMmkvString` 落 MMKV）并 toast 告知新端口，界面和核心从此看到同一个值。只需挂在模式切换这一个入口：SOCKS+HTTP 模式下把两个端口设成相同值本来就被 `validateLocalPort` 拦住，冲突只可能是从没有独立 HTTP 端口的模式带进来的。
 
-### 14. 透明入站端口冲突被静默吞掉，开关仍显示"已开启" (fork 引入)
+### 14.【已修】透明入站端口冲突被静默吞掉，开关仍显示"已开启" (fork 引入)
 
-- **严重度**：状态不一致（未修）
+- **严重度**：状态不一致
 - **涉及**：`core/CoreConfigManager.kt#configureInbounds`
 - **触发条件**：dokodemo-door 端口与 SOCKS/HTTP 端口相同。
 - **为什么是 bug**：
@@ -183,15 +184,17 @@ appendLine("  password: '$socksPassword'")
 ```
 
   只写一行 warn 日志就跳过。用户在设置页看到透明代理开关是打开的，去配 iptables REDIRECT 时才发现端口根本没监听，而排查线索只在 logcat 里。UI 校验同样漏了一种情况：redir 端口校验传的冲突值是 `socksPortInt` 和 `httpPortInt`（配置值），而 MIXED 模式在非 Xray 核心上真实的 HTTP 端口是 `socksPort + 1`，不在校验范围内。
-- **建议修法**：跳过时通过 `MessageHelper.sendMsg2UI` 回一条可见提示（复用现有的启动失败提示通道），或者干脆让配置生成失败并给出明确 errorMessage——静默降级对"我以为我开了"这类问题是最差的处理。
+- **修法**：两头都堵。配置侧不再静默跳过，直接 `error("Transparent redirect port $redirPort conflicts with another local inbound port")`——`getV2rayConfig` 的 catch 会把它变成 `ConfigResult.errorMessage`，经 `MSG_STATE_START_FAILURE` 显示给用户。UI 侧新增派生状态 `redirPortConflicts`（与 SOCKS 端口相同，或在有独立 HTTP 端口的模式下与 HTTP 端口相同），开关行的 summary 换成 `summary_pref_local_redir_conflict`，用户在按下连接之前就能看见。
+- **代价**：以前这种配置能连上（只是透明入站不生效），现在会直接连不上。这是有意的——"我以为我开了"比"我知道我配错了"危险得多，而且 UI 现在会提前拦住这种组合。
 
-### 15. dokodemo-door 入站同样跟随 0.0.0.0，且不受认证开关保护 (fork 引入)
+### 15.【已修】dokodemo-door 入站同样跟随 0.0.0.0，且不受认证开关保护 (fork 引入)
 
-- **严重度**：状态不一致 + 安全（未修）
+- **严重度**：状态不一致 + 安全
 - **涉及**：`core/CoreConfigManager.kt#configureInbounds`、`res/values/strings.xml#summary_pref_local_auth_enabled`
 - **触发条件**：同时开启透明入站与 0.0.0.0 监听。
 - **为什么是 bug**：redir 入站用的是同一个 `listen = inbound.listenAddress`，但 dokodemo-door 协议本身没有账号机制，`authAccounts` 也没传给它。设置项文案写的是"Require username/password on the local inbounds"——"the local inbounds" 这个措辞覆盖不到这个例外。虽然 `followRedirect = true` 让非 NAT 重定向的直连请求拿不到目的地址、实际可利用性很低，但"打开认证 = 所有本地入站都受保护"这个心智模型是错的。
-- **建议修法**：要么把 redir 入站固定绑回环（需要 LAN 转发时由 root 规则负责引流，这也是它现在的实际用法），要么在该设置项 summary 里明确写出 dokodemo-door 不参与认证。
+- **修法**：两条都做了。redir 入站的 `listen` 固定成 `AppConfig.LOOPBACK`，不再跟随 `inbound.listenAddress`；`summary_pref_local_auth_enabled` 改写成"为 SOCKS 与 HTTP 入站启用…透明代理入站（dokodemo-door）没有账号机制，不受此开关保护，因此它只监听 127.0.0.1"，`summary_pref_local_redir_enabled` 也点明监听地址是 127.0.0.1。
+- **代价**：本机 OUTPUT 链的 `REDIRECT` 会把目的地址改写成 127.0.0.1，不受影响；但 PREROUTING 上对**转发流量**做 `REDIRECT` 时目的地址是入口网卡的地址，绑回环后这类"用 dokodemo-door 给局域网客户端做透明代理"的手工玩法会失效。本仓库自带的 LAN 共享走的是 hev-tun 那条路（`RootProxyManager.buildLanShareSetup`），不经过这个入站，所以内建功能不受影响。
 
 ---
 
@@ -203,23 +206,23 @@ appendLine("  password: '$socksPassword'")
 - **为什么是 bug**：`InputField.singleLine` 的默认值是 `true`，基线的 `InputDialog` 一直无视它、硬编码 `singleLine = false, maxLines = 5`；fork 改成了 `singleLine = field.singleLine`，于是所有调用方一起退化为单行。受影响最明显的是 `title_pref_remote_dns` / `title_pref_domestic_dns` / `title_pref_dns_hosts` 这几个逗号分隔的长字段，编辑时只能横向滚动。
 - **修法**：`SettingsEditItem` 只对端口类（`keyboardNumber`）和密码类传 `singleLine = true`，其余恢复多行。
 
-### 17. `keyboardNumber` 仍然没有连到键盘类型
+### 17.【已修】`keyboardNumber` 仍然没有连到键盘类型
 
-- **涉及**：`ui/compose/SettingsItem.kt#SettingsEditItem`、`ui/compose/Dialog.kt#InputField`（未修）
+- **涉及**：`ui/compose/SettingsItem.kt#SettingsEditItem`、`ui/compose/Dialog.kt#InputField`
 - **为什么是 bug**：端口、MTU、超时这些设置项都传了 `keyboardNumber = true`，但 `InputField` 没有 `keyboardOptions` 字段，这个参数从来没到达 `OutlinedTextField`，弹出的仍是全键盘。
-- **建议修法**：给 `InputField` 增加 `keyboardOptions: KeyboardOptions = KeyboardOptions.Default`，`InputDialog` 透传给 `OutlinedTextField`，`SettingsEditItem` 在 `keyboardNumber` 时传 `KeyboardType.Number`。改动很小但会动到 `InputField` 的公共签名，所以本次没有顺手改。
+- **修法**：`InputField` 增加 `keyboardOptions: KeyboardOptions = KeyboardOptions.Default`，`InputDialog` 透传给 `OutlinedTextField`，`SettingsEditItem` 在 `keyboardNumber` 时传 `KeyboardType.Number`。带默认值，其余调用方不受影响。
 
-### 18. 空状态忽略了列表的 contentPadding
+### 18.【已修】空状态忽略了列表的 contentPadding
 
-- **涉及**：`ui/main/MainServerPager.kt#ServerListPage`、`ui/compose/Components.kt#EmptyState`（未修）
+- **涉及**：`ui/main/MainServerPager.kt#ServerListPage`、`ui/compose/Components.kt#EmptyState`
 - **为什么是 bug**：`MainScreen` 给列表传的是 `PaddingValues(bottom = 80.dp)`，用来给悬浮在底栏上方的 FAB 留位；`servers.isEmpty()` 分支直接 `return` 一个 `EmptyState`，没有把这个 padding 传下去，而 `EmptyState` 内部是 `fillMaxSize()` + 垂直居中。屏幕较矮时提示文字会被 FAB 压住。
-- **建议修法**：给 `EmptyState` 加一个 `contentPadding: PaddingValues = PaddingValues(0.dp)` 参数并应用到外层 `Column`，空状态分支把列表那份 padding 传进去。
+- **修法**：`EmptyState` 增加 `contentPadding: PaddingValues = PaddingValues(0.dp)`，在原有的 32/48dp 内边距之前应用；`ServerListPage` 的空状态分支把列表那份 padding 传进去。其余 `EmptyState` 调用方走默认值，外观不变。
 
-### 19. 对话框模糊效果在每次重组时重设窗口属性 (fork 引入)
+### 19.【已修】对话框模糊效果在每次重组时重设窗口属性 (fork 引入)
 
-- **涉及**：`ui/compose/Glass.kt#GlassDialogWindowEffect`（未修）
+- **涉及**：`ui/compose/Glass.kt#GlassDialogWindowEffect`
 - **为什么是 bug**：`SideEffect` 在每次成功重组后都会跑一遍 `window.attributes = window.attributes.also { it.blurBehindRadius = radiusPx }`，赋值 `attributes` 会触发一次 WindowManager relayout。输入类对话框每敲一个字符就重组一次，等于每个字符做一次窗口重排。半径其实是常量，重复设置没有任何意义。
-- **建议修法**：换成 `DisposableEffect(radiusPx)`，只在半径变化时设置一次。
+- **修法**：换成 `DisposableEffect(view, radiusPx)`，只在视图或半径变化时设置一次。
 
 ### 20.【已修】文档漂移：`local_inbound_zh.md` 引用了不存在的函数
 
@@ -239,3 +242,13 @@ appendLine("  password: '$socksPassword'")
 - **`CoreConfigContextBuilder` 的 decode-once 改造**：`ProfileStore.findByRemarks` 用 `putIfAbsent` 保留首个同名 profile，与原 `getServerViaRemarks` 的 `firstOrNull` 语义一致；`decodeRoutingRulesets() ?: return` 改成 `.orEmpty()` 后的迭代行为也相同。没有引入解析结果差异。
 - **`initConfigCache`**：缓存的是资产文件的字符串，每次仍重新 `fromJson` 出新对象，不存在跨次生成的可变状态污染。
 - **`SOCKS-only` 模式下 `getHttpPort()` 返回 0**：`HttpUtil.buildOkHttpClient` 对 `httpPort == 0` 走直连，`CoreVpnService` 也加了 `httpPort > 0` 判断，不会连到 0 端口。（另外本项目所有 flavor 的 `isXray()` 都是 true，这条分支实际走不到。）
+
+---
+
+## 附：修复后仍存在的已知限制
+
+- **第 14 条把静默降级换成了硬失败**：透明入站端口撞车时现在连不上而不是"连上但入站不生效"。UI 会提前提示，但如果用户忽略提示仍会遇到启动失败。
+- **第 15 条改变了 dokodemo-door 的可达性**：绑回环后，靠 PREROUTING `REDIRECT` 把局域网转发流量送进这个入站的手工方案不再可行（本机 OUTPUT `REDIRECT` 不受影响）。内建的 LAN 共享走 hev-tun，不受影响。
+- **第 7 条的 `awaitPendingStop()` 会在主线程上等**：`startCoreLoop()` 由各服务的 `onStartCommand` 在主线程调用，最坏情况阻塞 3 秒。只有在确实有停止在途时才进入，且远低于前台服务的 ANR 阈值；彻底解决要把 `startCoreLoop` 整条链路异步化。
+- **第 12 条只做了派生状态 + 提示**，没有强制"凭据不全就关开关"，原因见该条。
+- **全部改动只有编译与单测验证**（`assembleFdroidDebug`、`testFdroidDebugUnitTest` 通过），root 模式停止、切节点竞态、动态端口跨进程这三条的运行期行为需要真机确认。
