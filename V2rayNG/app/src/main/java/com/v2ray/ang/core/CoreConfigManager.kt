@@ -562,6 +562,8 @@ object CoreConfigManager {
         }
 
         if (httpRequired) {
+            // getHttpInboundPort() already resolves collisions with the SOCKS
+            // port so this stays consistent with SettingsManager.getHttpPort().
             val httpPort = if (mode == LocalInboundMode.MIXED) {
                 socksPort + 1
             } else {
@@ -571,7 +573,7 @@ object CoreConfigManager {
                 ?: error("Failed to clone inbound template")
             inboundHttp.tag = AppConfig.TAG_HTTP_INBOUND
             inboundHttp.protocol = AppConfig.PROTOCOL_HTTP
-            inboundHttp.port = if (socksRequired && httpPort == socksPort) socksPort + 1 else httpPort
+            inboundHttp.port = httpPort
             inboundHttp.settings?.auth = null
             inboundHttp.settings?.udp = null
             // HTTP basic auth uses the same credentials as SOCKS; the cloned

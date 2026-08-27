@@ -463,7 +463,7 @@ fun SettingsScreen(
                         viewModel.validateLocalPort(
                             it,
                             AppConfig.PORT_HTTP,
-                            if (modeHasSocks) socksPortInt else null,
+                            socksPortInt,
                             if (localRedirEnabled) redirPortInt else null
                         )?.let { value -> httpPort = value }
                     }
@@ -516,8 +516,8 @@ fun SettingsScreen(
                         viewModel.validateLocalPort(
                             it,
                             AppConfig.PORT_REDIR,
-                            if (modeHasSocks) socksPortInt else null,
-                            if (modeHasSeparateHttpPort) httpPortInt else null
+                            socksPortInt,
+                            httpPortInt
                         )?.let { value -> localRedirPort = value }
                     }
                 )
