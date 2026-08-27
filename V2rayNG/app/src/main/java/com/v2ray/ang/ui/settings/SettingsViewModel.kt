@@ -93,6 +93,17 @@ class SettingsViewModel(application: Application) : BaseViewModel(application) {
     }
 
     /**
+     * Warns right when 0.0.0.0 is selected without working authentication, not only
+     * at the next service start: an unauthenticated inbound open to the LAN is the
+     * single most dangerous switch on this screen.
+     */
+    fun warnIfUnauthenticatedLanSharing(sharing: Boolean, authInEffect: Boolean) {
+        if (sharing && !authInEffect) {
+            toastError(R.string.toast_warning_pref_proxysharing_unauthenticated)
+        }
+    }
+
+    /**
      * Resolve an HTTP/SOCKS port collision when a local inbound mode with a dedicated HTTP
      * port is selected.
      *

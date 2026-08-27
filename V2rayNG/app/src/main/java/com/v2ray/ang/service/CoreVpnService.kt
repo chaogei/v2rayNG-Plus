@@ -14,6 +14,7 @@ import android.os.StrictMode
 import com.v2ray.ang.AppConfig
 import com.v2ray.ang.AppConfig.LOOPBACK
 import com.v2ray.ang.BuildConfig
+import com.v2ray.ang.R
 import com.v2ray.ang.contracts.ServiceControl
 import com.v2ray.ang.contracts.Tun2SocksControl
 import com.v2ray.ang.core.CoreServiceManager
@@ -21,6 +22,7 @@ import com.v2ray.ang.handler.AppLocaleManager
 import com.v2ray.ang.handler.MmkvManager
 import com.v2ray.ang.handler.NotificationManager
 import com.v2ray.ang.handler.SettingsManager
+import com.v2ray.ang.helper.MessageHelper
 import com.v2ray.ang.root.RootLanSharing
 import com.v2ray.ang.util.LogUtil
 import com.v2ray.ang.util.Utils
@@ -90,7 +92,12 @@ class CoreVpnService : VpnService(), ServiceControl {
         // Before setupVpnService(): the hev-tun config and the appended HTTP proxy are both
         // built from the local inbound ports there.
         CoreServiceManager.refreshRuntimeSocksPort()
-        if (!setupVpnService()) {
+        val setupError = setupVpnService()
+        if (setupError != null) {
+            // The UI only learns about a failed start from this broadcast; without it a
+            // revoked permission or an interface held by another VPN app looks like a
+            // button that silently does nothing.
+            MessageHelper.sendMsg2UI(this, AppConfig.MSG_STATE_START_FAILURE, setupError)
             unlockStart()
             // Stop service if setup fails to avoid infinite restart loops (START_STICKY)
             stopSelf()
@@ -139,28 +146,31 @@ class CoreVpnService : VpnService(), ServiceControl {
     /**
      * Sets up the VPN service.
      * Prepares the VPN and configures it if preparation is successful.
+     *
+     * @return null on success, otherwise a user-facing reason for the failure.
      */
-    private fun setupVpnService(): Boolean {
+    private fun setupVpnService(): String? {
         val prepare = prepare(this)
         if (prepare != null) {
             LogUtil.e(AppConfig.TAG, "StartCore-VPN: Permission not granted")
-            return false
+            return getString(R.string.toast_vpn_permission_missing)
         }
 
-        if (configureVpnService() != true) {
+        val configureError = configureVpnService()
+        if (configureError != null) {
             LogUtil.e(AppConfig.TAG, "StartCore-VPN: Configuration failed")
-            return false
+            return configureError
         }
 
         runTun2socks()
-        return true
+        return null
     }
 
     /**
      * Configures the VPN service.
-     * @return True if the VPN service was configured successfully, false otherwise.
+     * @return null on success, otherwise a user-facing reason for the failure.
      */
-    private fun configureVpnService(): Boolean {
+    private fun configureVpnService(): String? {
         val builder = Builder()
 
         // Configure network settings (addresses, routing and DNS)
@@ -185,12 +195,13 @@ class CoreVpnService : VpnService(), ServiceControl {
         try {
             mInterface = builder.establish()!!
             isRunning = true
-            return true
+            return null
         } catch (e: Exception) {
             LogUtil.e(AppConfig.TAG, "Failed to establish VPN interface", e)
             stopAllService()
+            val base = getString(R.string.toast_vpn_interface_failed)
+            return e.message?.takeUnless { it.isBlank() }?.let { "$base ($it)" } ?: base
         }
-        return false
     }
 
     /**

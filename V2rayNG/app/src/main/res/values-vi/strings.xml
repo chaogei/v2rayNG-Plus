@@ -243,6 +243,7 @@
     <string name="title_pref_proxy_sharing_enabled">Cho phép kết nối từ mạng LAN</string>
     <string name="summary_pref_proxy_sharing_enabled">Các thiết bị khác có thể kết nối với proxy SOCKS/HTTP trên thiết bị của bạn qua mạng LAN.\nChỉ bật tính năng này trong các mạng đáng tin cậy để tránh kết nối trái phép.</string>
     <string name="toast_warning_pref_proxysharing_short">Đã cho phép kết nối từ mạng LAN. Hãy đảm bảo bạn đang dùng mạng đáng tin cậy.</string>
+    <string name="toast_warning_pref_proxysharing_unauthenticated">Proxy cục bộ sẽ chấp nhận kết nối từ mạng LAN mà không cần mật khẩu. Hãy bật xác thực proxy cục bộ trừ khi mạng hoàn toàn đáng tin cậy</string>
 
     <string name="title_pref_socks_port">Cổng proxy cục bộ</string>
     <string name="title_pref_enable_local_proxy">Bật proxy cục bộ</string>
@@ -357,6 +358,9 @@
     <string name="title_root_mode_enabled">Bật chế độ Root (dành cho người dùng Root)</string>
     <string name="summary_root_mode_enabled">Dùng quyền Root cho proxy trong suốt cấp thấp. Chế độ Root xử lý trực tiếp lưu lượng mạng thay vì dùng dịch vụ VPN của Android. Khi chế độ này bật, chế độ thông thường, định tuyến theo ứng dụng và các cài đặt VPN liên quan sẽ không được áp dụng.</string>
     <string name="toast_root_required">Tính năng này yêu cầu quyền truy cập Root</string>
+    <string name="toast_root_setup_failed">Không thể cài đặt quy tắc định tuyến chế độ root; dịch vụ đã dừng</string>
+    <string name="toast_vpn_permission_missing">Quyền VPN bị thiếu hoặc đã bị hệ thống thu hồi. Hãy mở ứng dụng và kết nối lại để cấp quyền</string>
+    <string name="toast_vpn_interface_failed">Không thể tạo giao diện VPN. Có thể một ứng dụng VPN khác đang giữ nó</string>
     <string name="title_root_lan_sharing">Chia sẻ VPN với thiết bị LAN / chia sẻ kết nối (dành cho người dùng Root)</string>
     <string name="summary_root_lan_sharing">Định tuyến lưu lượng từ thiết bị dùng điểm phát Wi-Fi và chia sẻ kết nối USB qua VPN.</string>
 

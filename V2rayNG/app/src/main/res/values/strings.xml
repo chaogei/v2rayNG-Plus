@@ -243,6 +243,7 @@
     <string name="title_pref_proxy_sharing_enabled">Allow connections from the LAN</string>
     <string name="summary_pref_proxy_sharing_enabled">Other devices can connect to proxy by your IP address through local proxy. Only enable in trusted networks to avoid unauthorized connections</string>
     <string name="toast_warning_pref_proxysharing_short">Allow connections from the LAN. Make sure you are in a trusted network</string>
+    <string name="toast_warning_pref_proxysharing_unauthenticated">The local proxy will accept LAN connections without a password. Enable local proxy authentication unless the network is fully trusted</string>
 
     <string name="title_pref_socks_port">Local SOCKS port</string>
     <string name="title_pref_enable_local_proxy">Enable local proxy</string>
@@ -356,6 +357,9 @@
     <string name="title_root_mode_enabled">Enable root mode (root users)</string>
     <string name="summary_root_mode_enabled">Use root access for low-level transparent proxying. Root mode handles network traffic directly instead of using the Android VPN service. Standard mode, per-app routing, and VPN-related settings do not apply while root mode is enabled.</string>
     <string name="toast_root_required">Root access is required for this feature</string>
+    <string name="toast_root_setup_failed">Failed to install the root-mode routing rules; the service was stopped</string>
+    <string name="toast_vpn_permission_missing">VPN permission is missing or was revoked by the system. Open the app and connect again to grant it</string>
+    <string name="toast_vpn_interface_failed">Could not establish the VPN interface. Another VPN app may be holding it</string>
     <string name="title_root_lan_sharing">Share VPN with LAN / tethered devices (root users)</string>
     <string name="summary_root_lan_sharing">Route traffic from Wi-Fi hotspot and USB-tethered devices through the VPN.</string>
 
