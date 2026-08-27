@@ -13,6 +13,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -24,10 +26,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.v2ray.ang.AppConfig
 import com.v2ray.ang.AppConfig.VPN
 import com.v2ray.ang.R
+import com.v2ray.ang.enums.EConfigType
 import com.v2ray.ang.handler.AppLocaleManager
 import com.v2ray.ang.handler.MmkvManager
 import com.v2ray.ang.enums.LocalInboundMode
@@ -35,10 +39,12 @@ import com.v2ray.ang.handler.MmkvManager.rememberMmkvBool
 import com.v2ray.ang.handler.MmkvManager.rememberMmkvString
 import com.v2ray.ang.handler.LocalAuthPolicy
 import com.v2ray.ang.handler.SettingsChangeManager
+import com.v2ray.ang.handler.SettingsManager
 import com.v2ray.ang.root.RootManager
 import com.v2ray.ang.ui.base.BaseComponentActivity
 import com.v2ray.ang.ui.compose.AppTopBar
 import com.v2ray.ang.ui.compose.CollapsiblePreferenceGroupHeader
+import com.v2ray.ang.ui.compose.GlassAlertDialog
 import com.v2ray.ang.ui.compose.NavigationBarsSpacer
 import com.v2ray.ang.ui.compose.SettingsEditItem
 import com.v2ray.ang.ui.compose.SettingsListItem
@@ -112,6 +118,20 @@ fun SettingsScreen(
     var mode by rememberMmkvString(AppConfig.PREF_MODE, VPN)
     var enableRootMode by rememberMmkvBool(AppConfig.PREF_ROOT_MODE_ENABLE, false)
     var lanSharing by rememberMmkvBool(AppConfig.PREF_ROOT_LAN_SHARING, false)
+    // Set when the user picks VPN while "local proxy / direct" is active; the switch is
+    // applied only after they confirm they understand the direct-start behavior.
+    var showVpnWhileDirectConfirm by remember { mutableStateOf(false) }
+
+    // A direct start may rewrite PREF_MODE to proxy-only behind this screen's back
+    // (e.g. settings left on the back stack while the tile/menu starts a direct run).
+    // Re-read it on resume so the row reflects the mode the service actually uses.
+    LifecycleResumeEffect(Unit) {
+        val storedMode = MmkvManager.decodeSettingsString(AppConfig.PREF_MODE, VPN) ?: VPN
+        if (storedMode != mode) {
+            mode = storedMode
+        }
+        onPauseOrDispose { }
+    }
 
     var hevTunLogLevel by rememberMmkvString(AppConfig.PREF_HEV_TUNNEL_LOGLEVEL, "warn")
     var hevTunRwTimeout by rememberMmkvString(AppConfig.PREF_HEV_TUNNEL_RW_TIMEOUT, "")
@@ -165,6 +185,12 @@ fun SettingsScreen(
     val muxXudpConcurrencyInt = muxXudpConcurrency.toIntOrNull() ?: 8
 
     val inboundMode = LocalInboundMode.fromValue(localInboundMode)
+    // CUSTOM profiles get the managed local inbounds injected into their JSON; say so
+    // right where the inbound layout is configured when such a profile is selected.
+    val selectedProfileIsCustom = remember {
+        MmkvManager.getSelectServer()
+            ?.let { MmkvManager.decodeServerConfig(it)?.configType } == EConfigType.CUSTOM
+    }
     val modeHasSocks = inboundMode != LocalInboundMode.HTTP
     val modeHasSeparateHttpPort = inboundMode == LocalInboundMode.SOCKS_HTTP || inboundMode == LocalInboundMode.HTTP
     val socksPortInt = socksPort.trim().toIntOrNull() ?: AppConfig.PORT_SOCKS.toInt()
@@ -456,7 +482,11 @@ fun SettingsScreen(
                     entries = localInboundModeEntries,
                     values = localInboundModeValues,
                     selectedValue = localInboundMode,
-                    extraSummary = stringResource(R.string.summary_pref_local_inbound_custom),
+                    extraSummary = if (selectedProfileIsCustom) {
+                        stringResource(R.string.summary_pref_local_inbound_custom_selected)
+                    } else {
+                        stringResource(R.string.summary_pref_local_inbound_custom)
+                    },
                     enabled = effectiveLocalProxy,
                     onSelected = {
                         localInboundMode = it
@@ -512,7 +542,10 @@ fun SettingsScreen(
                 )
                 SettingsSwitchItem(
                     title = stringResource(R.string.title_pref_local_auth_enabled),
-                    summary = if (localAuthEnabled && !localAuthInEffect) {
+                    // The incomplete-credentials note shows whenever the fields are not
+                    // both filled, so the user learns why the switch refuses to turn on
+                    // before tapping it, not only after.
+                    summary = if (!localAuthInEffect) {
                         stringResource(R.string.summary_pref_local_auth_incomplete)
                     } else {
                         stringResource(R.string.summary_pref_local_auth_enabled)
@@ -527,6 +560,9 @@ fun SettingsScreen(
                         }
                     }
                 )
+                // Clearing a credential silently turns the switch off (the summary above
+                // explains why); no toast per keystroke, and the other field is never
+                // touched while the user is editing this one.
                 SettingsEditItem(
                     title = stringResource(R.string.title_pref_socks_username),
                     value = socksUsername,
@@ -535,7 +571,6 @@ fun SettingsScreen(
                         socksUsername = it
                         if (localAuthEnabled && !LocalAuthPolicy.credentialsComplete(it, socksPassword)) {
                             localAuthEnabled = false
-                            viewModel.warnIfLocalAuthCredentialsMissing(it, socksPassword)
                         }
                     }
                 )
@@ -548,7 +583,6 @@ fun SettingsScreen(
                         socksPassword = it
                         if (localAuthEnabled && !LocalAuthPolicy.credentialsComplete(socksUsername, it)) {
                             localAuthEnabled = false
-                            viewModel.warnIfLocalAuthCredentialsMissing(socksUsername, it)
                         }
                     }
                 )
@@ -785,7 +819,15 @@ fun SettingsScreen(
                     values = modeValues,
                     selectedValue = mode,
                     extraSummary = stringResource(R.string.summary_pref_mode_local_direct),
-                    onSelected = { mode = it }
+                    onSelected = { newMode ->
+                        if (newMode == VPN && mode != VPN && SettingsManager.isLocalProxyDirectOnly()) {
+                            // VPN + direct would tun the whole device straight out; make the
+                            // user confirm they know a direct start reverts to proxy-only.
+                            showVpnWhileDirectConfirm = true
+                        } else {
+                            mode = newMode
+                        }
+                    }
                 )
                 SettingsMenuItem(
                     title = stringResource(R.string.title_mode_help),
@@ -824,5 +866,26 @@ fun SettingsScreen(
             Spacer(modifier = Modifier.height(24.dp))
             NavigationBarsSpacer()
         }
+    }
+
+    if (showVpnWhileDirectConfirm) {
+        GlassAlertDialog(
+            onDismissRequest = { showVpnWhileDirectConfirm = false },
+            title = { Text(stringResource(R.string.dialog_vpn_while_direct_title)) },
+            text = { Text(stringResource(R.string.dialog_vpn_while_direct_message)) },
+            confirmButton = {
+                TextButton(onClick = {
+                    showVpnWhileDirectConfirm = false
+                    mode = VPN
+                }) {
+                    Text(stringResource(R.string.action_ok))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showVpnWhileDirectConfirm = false }) {
+                    Text(stringResource(R.string.action_cancel))
+                }
+            }
+        )
     }
 }

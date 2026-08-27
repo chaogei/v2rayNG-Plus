@@ -284,6 +284,13 @@
     <string name="summary_pref_local_inbound_custom">這些埠對 CUSTOM 自訂設定同樣生效：應用會注入本機 SOCKS/HTTP/redir 入站，其餘 JSON 保持不變</string>
     <string name="summary_pref_mode_local_direct">「本機代理 · 直連」再疊加 VPN，會拉起一條只把流量直連出去的系統 tun。啟動直連時會改成「僅代理」，只開放本機埠</string>
     <string name="toast_local_direct_switched_to_proxy">已依「僅代理」啟動本機代理 · 直連（未拉起系統 VPN）</string>
+    <string name="dialog_vpn_while_direct_title">切換到 VPN 模式？</string>
+    <string name="dialog_vpn_while_direct_message">目前為「本機代理 · 直連」。VPN 疊加直連出站會讓整機流量經系統 tun 直接送出，因此下次啟動直連時會自動改回「僅代理」。仍要切換到 VPN 嗎？</string>
+    <string name="summary_pref_local_inbound_custom_selected">目前選取的是 CUSTOM 自訂設定：應用會把這些本機 SOCKS/HTTP/redir 入站注入其 JSON，其餘內容保持不變</string>
+    <string name="update_source_notice">更新來源：%1$s（%2$s），2dust/v2rayNG 的 fork —— 不是官方套件</string>
+    <string name="update_already_latest_version_fork">%1$s 已是最新版本</string>
+    <string name="empty_server_list_direct_hint">點右上角 + 新增或匯入伺服器；也可以不加節點直接啟動：本機代理埠照常監聽，出站為直連（freedom）</string>
+    <string name="action_start_local_proxy_direct">啟動本機代理 · 直連</string>
 
     <string name="title_pref_local_dns_port">本機 DNS 埠</string>
     <string name="summary_pref_local_dns_port">本機 DNS 埠</string>

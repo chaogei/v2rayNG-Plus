@@ -284,6 +284,13 @@
     <string name="summary_pref_local_inbound_custom">Эти порты действуют и для CUSTOM-профилей: приложение внедряет локальные SOCKS/HTTP/redir, остальной JSON не меняется</string>
     <string name="summary_pref_mode_local_direct">«Локальный прокси · напрямую» вместе с VPN поднял бы системный tun, который только выпускает трафик напрямую. При запуске этого режима приложение переключается на «только прокси» и открывает лишь локальные порты</string>
     <string name="toast_local_direct_switched_to_proxy">Локальный прокси · напрямую запущен как «только прокси» (без системного VPN)</string>
+    <string name="dialog_vpn_while_direct_title">Переключиться в режим VPN?</string>
+    <string name="dialog_vpn_while_direct_message">Сейчас активен «Локальный прокси · напрямую». VPN с прямым исходящим направил бы весь трафик устройства напрямую через системный tun, поэтому при следующем прямом запуске режим автоматически вернётся к «только прокси». Всё равно переключиться на VPN?</string>
+    <string name="summary_pref_local_inbound_custom_selected">Выбран CUSTOM-профиль: эти локальные SOCKS/HTTP/redir внедряются в его JSON, остальное содержимое не меняется</string>
+    <string name="update_source_notice">Источник обновлений: %1$s (%2$s), форк 2dust/v2rayNG — не официальный пакет</string>
+    <string name="update_already_latest_version_fork">%1$s — уже последняя версия</string>
+    <string name="empty_server_list_direct_hint">Нажмите + вверху, чтобы добавить или импортировать серверы, либо запустите без узла: локальные порты прокси работают с прямым (freedom) исходящим</string>
+    <string name="action_start_local_proxy_direct">Запустить локальный прокси · напрямую</string>
 
     <string name="title_pref_local_dns_port">Порт локального DNS</string>
     <string name="summary_pref_local_dns_port">Порт локального DNS</string>

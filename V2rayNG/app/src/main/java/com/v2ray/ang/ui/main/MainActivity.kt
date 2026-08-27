@@ -276,9 +276,12 @@ class MainActivity : HelperBaseComponentActivity() {
     }
 
     private fun useLocalProxyDirect() {
-        if (mainViewModel.uiState.value.localProxyDirectOnly) return
+        val state = mainViewModel.uiState.value
+        // Already running direct-only: nothing to do. Not running yet (fresh install,
+        // empty list) the tap must still start the service, not just set the flag.
+        if (state.localProxyDirectOnly && state.isRunning) return
         mainViewModel.enableLocalProxyDirect()
-        LauncherManager.restartService(this)
+        LauncherManager.restartServiceOrStart(this, ::requestServiceStart)
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent): Boolean {

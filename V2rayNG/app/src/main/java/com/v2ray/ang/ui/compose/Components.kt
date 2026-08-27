@@ -31,6 +31,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
@@ -236,8 +237,9 @@ fun AppDivider(modifier: Modifier = Modifier) {
 }
 
 /**
- * Centered empty-state placeholder: a dimmed icon with a title and optional
- * hint, used when a list has no content (servers, subscriptions, search).
+ * Centered empty-state placeholder: a dimmed icon with a title, optional
+ * hint and optional action button, used when a list has no content
+ * (servers, subscriptions, search).
  */
 @Composable
 fun EmptyState(
@@ -245,6 +247,8 @@ fun EmptyState(
     title: String,
     modifier: Modifier = Modifier,
     hint: String? = null,
+    actionLabel: String? = null,
+    onAction: (() -> Unit)? = null,
     /** Insets the list it replaces would have reserved, e.g. room for a floating button. */
     contentPadding: PaddingValues = PaddingValues(0.dp)
 ) {
@@ -277,6 +281,12 @@ fun EmptyState(
                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
                 textAlign = TextAlign.Center
             )
+        }
+        if (actionLabel != null && onAction != null) {
+            Spacer(modifier = Modifier.height(16.dp))
+            OutlinedButton(onClick = onAction) {
+                Text(text = actionLabel)
+            }
         }
     }
 }

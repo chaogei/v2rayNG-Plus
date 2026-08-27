@@ -284,6 +284,13 @@
     <string name="summary_pref_local_inbound_custom">Các cổng này cũng áp dụng cho hồ sơ CUSTOM: ứng dụng tiêm inbound SOCKS/HTTP/redir cục bộ và giữ nguyên phần JSON còn lại</string>
     <string name="summary_pref_mode_local_direct">Proxy cục bộ · trực tiếp cộng VPN sẽ tạo tun toàn hệ thống chỉ đưa lưu lượng ra trực tiếp. Khi khởi động chế độ đó, ứng dụng chuyển sang Chỉ proxy để chỉ mở cổng cục bộ</string>
     <string name="toast_local_direct_switched_to_proxy">Proxy cục bộ · trực tiếp đã chạy ở chế độ Chỉ proxy (không bật VPN hệ thống)</string>
+    <string name="dialog_vpn_while_direct_title">Chuyển sang chế độ VPN?</string>
+    <string name="dialog_vpn_while_direct_message">Đang dùng «Proxy cục bộ · trực tiếp». VPN cộng với outbound trực tiếp sẽ đưa toàn bộ lưu lượng thiết bị ra ngoài qua tun hệ thống, nên lần khởi động trực tiếp tiếp theo sẽ tự chuyển về «Chỉ proxy». Vẫn chuyển sang VPN?</string>
+    <string name="summary_pref_local_inbound_custom_selected">Hồ sơ đang chọn là cấu hình CUSTOM: các inbound SOCKS/HTTP/redir cục bộ này sẽ được tiêm vào JSON của nó, phần còn lại giữ nguyên</string>
+    <string name="update_source_notice">Nguồn cập nhật: %1$s (%2$s), bản fork của 2dust/v2rayNG — không phải gói chính thức</string>
+    <string name="update_already_latest_version_fork">%1$s đã là phiên bản mới nhất</string>
+    <string name="empty_server_list_direct_hint">Nhấn + trên thanh trên để thêm hoặc nhập máy chủ, hoặc khởi động không cần máy chủ: các cổng proxy cục bộ vẫn hoạt động với outbound trực tiếp (freedom)</string>
+    <string name="action_start_local_proxy_direct">Khởi động proxy cục bộ · trực tiếp</string>
 
     <string name="title_pref_local_dns_port">Cổng DNS cục bộ</string>
     <string name="summary_pref_local_dns_port">Cổng DNS cục bộ</string>

@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -20,7 +21,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.v2ray.ang.AppConfig
 import com.v2ray.ang.BuildConfig
 import com.v2ray.ang.R
 import com.v2ray.ang.core.CoreNativeManager
@@ -105,13 +108,26 @@ fun CheckUpdateScreen(
             title = { Text(stringResource(R.string.update_new_version_found, result.latestVersion ?: "")) },
             text = {
                 val scrollState = rememberScrollState()
-                Text(
-                    text = result.releaseNotes.orEmpty(),
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
                         .verticalScroll(scrollState)
                         .verticalScrollbar(scrollState)
-                )
+                ) {
+                    // Make the origin explicit: this fork updates from its own releases,
+                    // not from the official 2dust repository.
+                    Text(
+                        text = stringResource(
+                            R.string.update_source_notice,
+                            AppConfig.APP_FORK_NAME,
+                            AppConfig.APP_URL
+                        ),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(text = result.releaseNotes.orEmpty())
+                }
             },
             confirmButton = {
                 TextButton(onClick = {

@@ -567,6 +567,14 @@ object SettingsManager {
     }
 
     /**
+     * A VPN→proxy-only switch that happened when the direct-only flag was set, waiting
+     * to be mentioned by the next service-start toast. UI and LauncherManager run in the
+     * same process, so a process-local flag is enough.
+     */
+    @Volatile
+    private var pendingDirectSwitchNotice = false
+
+    /**
      * Persist the explicit "local proxy / direct" choice. The selected profile is kept so
      * the user can go back to it with a single tap.
      *
@@ -579,7 +587,22 @@ object SettingsManager {
     fun setLocalProxyDirectOnly(enabled: Boolean): Boolean {
         MmkvManager.encodeSettings(AppConfig.PREF_LOCAL_PROXY_DIRECT_ONLY, enabled)
         if (!enabled) return false
-        return switchVpnToProxyOnlyForDirectStart()
+        val switched = switchVpnToProxyOnlyForDirectStart()
+        if (switched) {
+            pendingDirectSwitchNotice = true
+        }
+        return switched
+    }
+
+    /**
+     * True once when the direct-only flag recently switched the run mode to proxy-only,
+     * so the start toast can say so even though the mode is already proxy-only by the
+     * time the service starts.
+     */
+    fun consumeDirectSwitchNotice(): Boolean {
+        val notice = pendingDirectSwitchNotice
+        pendingDirectSwitchNotice = false
+        return notice
     }
 
     /**

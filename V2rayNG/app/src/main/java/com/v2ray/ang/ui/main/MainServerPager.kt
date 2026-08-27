@@ -94,6 +94,7 @@ fun GroupPagerPage(
     onShareServer: (String, ProfileItem) -> Unit,
     onMoreServer: (String, ProfileItem) -> Unit,
     onRemoveServer: (String) -> Unit,
+    onStartLocalProxyDirect: () -> Unit,
     contentPadding: PaddingValues
 ) {
     val serverFlow = remember(groupId) {
@@ -120,6 +121,7 @@ fun GroupPagerPage(
         onRemoveServer = onRemoveServer,
         onLocateHandled = { mainViewModel.onAction(MainAction.LocateHandled) },
         onMoveServer = { fromIndex, toIndex -> mainViewModel.moveServer(groupId, fromIndex, toIndex) },
+        onStartLocalProxyDirect = onStartLocalProxyDirect,
         contentPadding = contentPadding
     )
 }
@@ -144,6 +146,7 @@ private fun ServerListPage(
     onRemoveServer: (String) -> Unit,
     onLocateHandled: () -> Unit,
     onMoveServer: (Int, Int) -> Unit,
+    onStartLocalProxyDirect: () -> Unit,
     contentPadding: PaddingValues
 ) {
     if (servers.isEmpty()) {
@@ -154,7 +157,11 @@ private fun ServerListPage(
             title = stringResource(
                 if (isSearching) R.string.empty_search_result else R.string.empty_server_list
             ),
-            hint = if (isSearching) null else stringResource(R.string.empty_server_list_hint),
+            hint = if (isSearching) null else stringResource(R.string.empty_server_list_direct_hint),
+            // No node is required for the local-proxy-direct run, so an empty list
+            // still offers a working start button instead of a dead end.
+            actionLabel = if (isSearching) null else stringResource(R.string.action_start_local_proxy_direct),
+            onAction = if (isSearching) null else onStartLocalProxyDirect,
             // Same insets the list gets, so the text is not centered under the FAB.
             contentPadding = contentPadding
         )
