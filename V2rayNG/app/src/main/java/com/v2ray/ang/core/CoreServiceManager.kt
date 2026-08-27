@@ -9,6 +9,7 @@ import android.content.IntentFilter
 import android.net.ConnectivityManager
 import android.os.Build
 import android.os.ParcelFileDescriptor
+import android.os.SystemClock
 import android.system.OsConstants
 import androidx.core.content.ContextCompat
 import com.v2ray.ang.AppConfig
@@ -31,8 +32,10 @@ import com.v2ray.ang.util.LogUtil
 import com.v2ray.ang.util.Utils
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import com.v2ray.ang.extension.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 import libv2ray.CoreCallbackHandler
 import libv2ray.CoreController
 import libv2ray.ProcessFinder
@@ -50,6 +53,13 @@ object CoreServiceManager {
 
     @Volatile
     private var isReloading = false
+
+    /** Handle on the asynchronous [CoreController.stopLoop] so a restart can wait for it. */
+    @Volatile
+    private var stopJob: Job? = null
+
+    private const val STOP_WAIT_TIMEOUT_MS = 3000L
+    private const val STOP_POLL_INTERVAL_MS = 200L
 
     /** Tun descriptor the core was started with, null in the proxy only and root run modes. */
     private var currentVpnInterface: ParcelFileDescriptor? = null
@@ -83,10 +93,11 @@ object CoreServiceManager {
      * Starts the V2Ray core service.
      */
     fun startCoreLoop(vpnInterface: ParcelFileDescriptor?): Boolean {
-        if (isRunning()) {
+        if (!awaitPendingStop()) {
             LogUtil.w(AppConfig.TAG, "StartCore-Manager: Core already running")
             return false
         }
+        stopJob = null
 
         val service = getService()
         if (service == null) {
@@ -104,6 +115,45 @@ object CoreServiceManager {
             NotificationManager.cancelNotification()
             return false
         }
+    }
+
+    /**
+     * Wait out a stop that is still finishing before reporting the core as busy.
+     *
+     * [stopCoreLoop] hands `stopLoop()` to a background coroutine and returns immediately, so
+     * a node switch (stop, then start) can reach this while the previous core is still
+     * shutting down. Failing right there turns "switch server" into "disconnect", which is
+     * why this polls instead. Bounded, and only entered when a stop is actually pending.
+     */
+    private fun awaitPendingStop(): Boolean {
+        if (!isRunning()) return true
+        val pending = stopJob ?: return false
+
+        val deadline = SystemClock.elapsedRealtime() + STOP_WAIT_TIMEOUT_MS
+        while (SystemClock.elapsedRealtime() < deadline) {
+            if (!pending.isActive && !isRunning()) return true
+            try {
+                Thread.sleep(STOP_POLL_INTERVAL_MS)
+            } catch (e: InterruptedException) {
+                LogUtil.w(AppConfig.TAG, "StartCore-Manager: Interrupted while waiting for the core to stop", e)
+                Thread.currentThread().interrupt()
+                break
+            }
+        }
+        return !isRunning()
+    }
+
+    /**
+     * Suspending counterpart of [awaitPendingStop] for callers that can wait without
+     * blocking a thread (the restart flow).
+     */
+    private suspend fun awaitCoreStopped() {
+        withTimeoutOrNull(STOP_WAIT_TIMEOUT_MS) {
+            stopJob?.join()
+            while (isRunning()) {
+                delay(STOP_POLL_INTERVAL_MS)
+            }
+        } ?: LogUtil.w(AppConfig.TAG, "StartCore-Manager: Core did not stop within ${STOP_WAIT_TIMEOUT_MS}ms")
     }
 
     @Throws(Exception::class)
@@ -191,7 +241,7 @@ object CoreServiceManager {
         currentVpnInterface = null
 
         if (isRunning()) {
-            CoroutineScope(Dispatchers.IO).launch {
+            stopJob = CoroutineScope(Dispatchers.IO).launch {
                 try {
                     coreController.stopLoop()
                 } catch (e: Exception) {
@@ -480,7 +530,10 @@ object CoreServiceManager {
                     CoroutineScope(Dispatchers.Default).launch {
                         try {
                             serviceControl.stopService()
-                            delay(500L)
+                            // Wait for the core to actually be down instead of guessing a
+                            // delay: starting too early makes startCoreLoop() fail and the
+                            // node switch turns into a full disconnect.
+                            awaitCoreStopped()
                             LauncherManager.startService(serviceControl.getService())
                         } finally {
                             pendingResult.finish()
