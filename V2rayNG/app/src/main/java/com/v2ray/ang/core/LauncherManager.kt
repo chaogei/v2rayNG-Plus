@@ -95,8 +95,16 @@ object LauncherManager {
             }
         }
 
+        val switchedToProxyOnly = if (directOnly) {
+            SettingsManager.switchVpnToProxyOnlyForDirectStart()
+        } else {
+            false
+        }
+
         if (MmkvManager.decodeSettingsBool(AppConfig.PREF_PROXY_SHARING)) {
             context.toast(R.string.toast_warning_pref_proxysharing_short)
+        } else if (directOnly && switchedToProxyOnly) {
+            context.toast(R.string.toast_local_direct_switched_to_proxy)
         } else if (directOnly) {
             context.toast(R.string.title_local_proxy_direct)
         } else {

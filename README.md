@@ -1,6 +1,7 @@
 # v2rayNG（本地入站代理增强版）
 
-本项目基于 [2dust/v2rayNG](https://github.com/2dust/v2rayNG) fork 而来（上游提交 `a1b45bb`，v2.3.5），是 Android 上的 V2Ray/Xray 客户端。
+本项目基于 [2dust/v2rayNG](https://github.com/2dust/v2rayNG) fork 而来（上游提交 `a1b45bb`，v2.3.5），仓库是 [chaogei/v2rayNG-Plus](https://github.com/chaogei/v2rayNG-Plus)，版本号 **2.3.5-plus**（`versionCode` 746）。
+应用内「关于 / 源码 / 反馈 / 检查更新 / 隐私政策」都指向本仓库，不会再去下官方包。
 本 fork 的目标是**增强「本地服务器代理」（local inbound / 本地入站）的配置与管理能力**：让用户能更清楚地选择本地 SOCKS5 / HTTP / Mixed 等入站方式、监听地址、端口与可选认证。
 
 上游原始 README 见 [docs/README_upstream.md](docs/README_upstream.md)，许可证沿用上游 [GPL-3.0](LICENSE)。
@@ -27,9 +28,11 @@
 
 主要改动源码位置（便于审查 diff）：
 
-- `V2rayNG/app/src/main/java/com/v2ray/ang/core/CoreConfigManager.kt` — `configureInbounds()` 按模式生成入站
+- `V2rayNG/app/src/main/java/com/v2ray/ang/core/LocalInboundConfigurator.kt` — 入站布局纯函数（统一配置 + CUSTOM JSON）
+- `V2rayNG/app/src/main/java/com/v2ray/ang/core/CoreConfigManager.kt` — 调用 configurator 生成入站
+- `V2rayNG/app/src/main/java/com/v2ray/ang/core/LocalProxyDirectPolicy.kt`、`handler/LocalAuthPolicy.kt` — 直连默认仅代理、认证开关与凭据解耦
 - `V2rayNG/app/src/main/java/com/v2ray/ang/handler/SettingsManager.kt` — 模式 / 端口 / 监听地址 / 认证读取
-- `V2rayNG/app/src/main/java/com/v2ray/ang/enums/LocalInboundMode.kt` — 入站模式枚举（新增）
+- `V2rayNG/app/src/main/java/com/v2ray/ang/enums/LocalInboundMode.kt` — 入站模式枚举
 - `V2rayNG/app/src/main/java/com/v2ray/ang/ui/settings/SettingsActivity.kt`、`SettingsViewModel.kt` — 设置 UI 与校验
 - `V2rayNG/app/src/main/java/com/v2ray/ang/AppConfig.kt`、`dto/V2rayConfig.kt`、`service/CoreVpnService.kt` — 常量、DTO、防御性处理
 
@@ -44,7 +47,7 @@
    - **仅 SOCKS** / **仅 HTTP**：只开一种入站，减少暴露面。
 3. 需要给局域网内其他设备共享代理时，把 **本地监听地址** 改为 `0.0.0.0`，其他设备用 `你的手机IP:端口` 连接（见下方安全注意）。
 4. 需要认证时，打开 **本地代理认证** 并同时填写用户名和密码。
-5. **只想要本地代理、不走任何远程节点**（直连）：不选中任何节点直接点连接按钮即可；已经选了节点的话，用右上角「⋮」→ **本地代理 · 直连** 切过去（选中项会保留，点回列表里的节点就能切回来）。此时底栏显示「本地代理 · 直连」，核心的出站是 `freedom`，路由规则里指向节点的部分也一并走直连。详见 [docs/local_inbound_zh.md](docs/local_inbound_zh.md#不选节点只开本地代理直连)。
+5. **只想要本地代理、不走任何远程节点**（直连）：不选中任何节点直接点连接按钮即可；已经选了节点的话，用右上角「⋮」→ **本地代理 · 直连** 切过去（选中项会保留，点回列表里的节点就能切回来）。此时底栏显示「本地代理 · 直连」，核心的出站是 `freedom`。若当时运行模式是 VPN，启动直连会自动改成「仅代理」并提示，避免整机 tun 只做直连。CUSTOM 配置也会注入同一套本地入站。详见 [docs/local_inbound_zh.md](docs/local_inbound_zh.md#不选节点只开本地代理直连)。
 6. 连接后验证（在电脑上把 `<IP>` 换成手机 IP 或 `127.0.0.1`）：
 
 ```bash
@@ -84,6 +87,8 @@ echo "sdk.dir=<你的 Android SDK 路径>" > local.properties
 ```
 
 本 fork 已在 Linux + JDK 21 + SDK 37 环境用 `assembleFdroidDebug` 完整编译通过。
+
+Debug 包用仓库内固定的 `V2rayNG/debug.keystore`（密码 `android` / 别名 `androiddebugkey`）签名，换机构建也可以覆盖安装。仓库不再检入预编译 APK，请本地或 CI 自行 `assembleFdroidDebug`。
 
 > 注：本仓库为普通源码快照，未初始化 `AndroidLibXrayLite` 与 `hev-socks5-tunnel` 两个子模块目录；如需自行编译核心，请到对应上游仓库获取。
 

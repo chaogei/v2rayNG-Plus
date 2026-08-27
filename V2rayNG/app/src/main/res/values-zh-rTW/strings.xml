@@ -257,6 +257,34 @@
     <string name="title_pref_socks_password">本機代理密碼（可選）</string>
     <string name="summary_pref_socks_password">密碼</string>
 
+    <string name="title_pref_local_inbound_mode">本機入站協定</string>
+    <string-array name="local_inbound_mode_entries">
+        <item>Mixed（SOCKS + HTTP 同埠）</item>
+        <item>SOCKS + HTTP（雙埠）</item>
+        <item>僅 SOCKS</item>
+        <item>僅 HTTP</item>
+    </string-array>
+    <string name="title_pref_local_listen_address">本機監聽位址</string>
+    <string-array name="local_listen_address_entries">
+        <item>127.0.0.1（僅本機可用）</item>
+        <item>0.0.0.0（所有網路介面，區域網路可存取）</item>
+    </string-array>
+    <string name="title_pref_http_port">本機 HTTP 埠</string>
+    <string name="title_pref_local_auth_enabled">本機代理認證</string>
+    <string name="summary_pref_local_auth_enabled">為 SOCKS 與 HTTP 入站啟用使用者名稱/密碼認證（SOCKS 使用者密碼 + HTTP Basic）。透明代理入站（dokodemo-door）沒有帳號機制，不受此開關保護，因此它只監聽 127.0.0.1</string>
+    <string name="summary_pref_local_auth_incomplete">未生效：需同時填寫下方的使用者名稱和密碼，否則本機入站仍然無認證</string>
+    <string name="title_pref_local_redir_enabled">透明代理入站（dokodemo-door）</string>
+    <string name="summary_pref_local_redir_enabled">在 127.0.0.1 上額外開啟一個透明轉發入站，需要用 iptables REDIRECT 等方式將流量重新導向此埠（通常需要 root）</string>
+    <string name="summary_pref_local_redir_conflict">未生效：下方埠與其他本機入站埠衝突，設定會被拒絕</string>
+    <string name="title_pref_local_redir_port">透明代理埠</string>
+    <string name="toast_invalid_local_port">埠無效：請輸入 1-65535 之間的數字</string>
+    <string name="toast_local_port_conflict">埠與其他本機入站埠衝突</string>
+    <string name="toast_local_auth_credentials_missing">需同時設定使用者名稱和密碼，否則本機認證不會生效</string>
+    <string name="toast_http_port_normalized">HTTP 埠與 SOCKS 埠相同，已改為 %1$d</string>
+    <string name="summary_pref_local_inbound_custom">這些埠對 CUSTOM 自訂設定同樣生效：應用會注入本機 SOCKS/HTTP/redir 入站，其餘 JSON 保持不變</string>
+    <string name="summary_pref_mode_local_direct">「本機代理 · 直連」再疊加 VPN，會拉起一條只把流量直連出去的系統 tun。啟動直連時會改成「僅代理」，只開放本機埠</string>
+    <string name="toast_local_direct_switched_to_proxy">已依「僅代理」啟動本機代理 · 直連（未拉起系統 VPN）</string>
+
     <string name="title_pref_local_dns_port">本機 DNS 埠</string>
     <string name="summary_pref_local_dns_port">本機 DNS 埠</string>
 
@@ -301,6 +329,18 @@
     <string name="title_pref_ui_mode_night">深色模式</string>
     <string name="title_pref_dynamic_color">開啟莫奈取色</string>
     <string name="summary_pref_dynamic_color">僅在 Android 12+ 裝置上工作</string>
+    <string name="title_pref_theme_preset">主題配色</string>
+    <string name="theme_preset_amber">琥珀橙（預設）</string>
+    <string name="theme_preset_midnight">午夜藍</string>
+    <string name="theme_preset_aurora">極光綠</string>
+    <string name="theme_preset_sakura">櫻花粉</string>
+    <string name="theme_preset_graphite">石墨紫</string>
+    <string name="theme_preset_silver">冷灰銀</string>
+    <string name="empty_server_list">還沒有節點</string>
+    <string name="empty_server_list_hint">點右上角 + 新增或匯入伺服器</string>
+    <string name="empty_search_result">沒有符合的節點</string>
+    <string name="empty_sub_list">還沒有訂閱</string>
+    <string name="empty_sub_list_hint">點右上角 + 新增訂閱分組</string>
     <string name="title_pref_use_hev_tunnel">啟用 Hev TUN 功能</string>
     <string name="summary_pref_use_hev_tunnel">啟用後，TUN 會使用 hev-socks5-tunnel；否則使用 xray-core。</string>
     <string name="title_pref_hev_tunnel_loglevel">Hev TUN 日誌層級</string>

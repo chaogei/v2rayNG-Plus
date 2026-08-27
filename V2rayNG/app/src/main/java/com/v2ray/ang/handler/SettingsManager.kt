@@ -16,6 +16,7 @@ import com.v2ray.ang.dto.V2rayConfig
 import com.v2ray.ang.dto.entities.ProfileItem
 import com.v2ray.ang.dto.entities.RulesetItem
 import com.v2ray.ang.dto.entities.SubscriptionItem
+import com.v2ray.ang.core.LocalProxyDirectPolicy
 import com.v2ray.ang.enums.EConfigType
 import com.v2ray.ang.enums.LocalInboundMode
 import com.v2ray.ang.enums.RoutingType
@@ -559,16 +560,41 @@ object SettingsManager {
      * leaves through freedom instead of a proxy.
      */
     fun isLocalProxyDirectOnly(): Boolean {
-        return MmkvManager.decodeSettingsBool(AppConfig.PREF_LOCAL_PROXY_DIRECT_ONLY, false)
-                || MmkvManager.getSelectServer().isNullOrEmpty()
+        return LocalProxyDirectPolicy.isDirectOnly(
+            explicitFlag = MmkvManager.decodeSettingsBool(AppConfig.PREF_LOCAL_PROXY_DIRECT_ONLY, false),
+            selectedGuid = MmkvManager.getSelectServer(),
+        )
     }
 
     /**
      * Persist the explicit "local proxy / direct" choice. The selected profile is kept so
      * the user can go back to it with a single tap.
+     *
+     * Enabling the mode while the run mode is VPN switches it to proxy-only: a tun that
+     * only sends traffic out through freedom looks like a system VPN but is just a
+     * local proxy, which is not what people expect from the connect button.
+     *
+     * @return true when the run mode was switched from VPN to proxy-only.
      */
-    fun setLocalProxyDirectOnly(enabled: Boolean) {
+    fun setLocalProxyDirectOnly(enabled: Boolean): Boolean {
         MmkvManager.encodeSettings(AppConfig.PREF_LOCAL_PROXY_DIRECT_ONLY, enabled)
+        if (!enabled) return false
+        return switchVpnToProxyOnlyForDirectStart()
+    }
+
+    /**
+     * When a direct-only start would otherwise raise a system tun, persist proxy-only
+     * instead. Root mode is left alone (it does not use VpnService).
+     */
+    fun switchVpnToProxyOnlyForDirectStart(): Boolean {
+        val shouldSwitch = LocalProxyDirectPolicy.shouldSwitchVpnToProxyOnly(
+            directOnly = true,
+            vpnMode = isVpnMode(),
+            rootMode = isRootMode(),
+        )
+        if (!shouldSwitch) return false
+        MmkvManager.encodeSettings(AppConfig.PREF_MODE, AppConfig.PROXY_ONLY)
+        return true
     }
 
     /**

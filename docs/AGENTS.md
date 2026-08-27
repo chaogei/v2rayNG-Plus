@@ -7,7 +7,7 @@ cd V2rayNG
 ./gradlew assembleFdroidDebug    # or assemblePlaystoreDebug
 ```
 
-Kotlin 2.4.0, AGP 9.2.1, Gradle Kotlin DSL. No lint/format/typecheck tasks configured.
+Kotlin 2.4.10, AGP 9.3.1, Gradle Kotlin DSL. Version `2.3.5-plus`. No lint/format/typecheck tasks configured.
 
 ## Test
 
@@ -28,6 +28,8 @@ V2rayNG/
       core/                       # v2ray core integration
         CoreServiceManager.kt      # start/stop core, traffic stats, delay measurement
         CoreConfigManager.kt       # generates JSON config for v2ray core
+        LocalInboundConfigurator.kt # inbound layout (unified + CUSTOM)
+        LocalProxyDirectPolicy.kt  # direct-start switches VPN → proxy-only
         CoreNativeManager.kt       # JNI bridge to libv2ray AAR
         CoreOutboundBuilder.kt     # outbound config construction
         CoreConfigContextBuilder.kt
@@ -81,4 +83,5 @@ V2rayNG/
 - **Flavors**: `fdroid` (suffix `.fdroid`) and `playstore` (no suffix). ABI version codes differ per flavor.
 - **hev-socks5-tunnel**: Optional tun2socks binary. Build with `./compile-hevtun.sh` (requires `NDK_HOME`).
 - **ViewBinding** enabled, no DataBinding.
-- **No CI**, no pre-commit hooks, no lint/format enforcement.
+- **CI**: `.github/workflows/build.yml` on `master`. Debug signing uses the committed `V2rayNG/debug.keystore`.
+- **Inbound layout**: `core/LocalInboundConfigurator.kt` (pure). Direct-start VPN→proxy-only: `core/LocalProxyDirectPolicy.kt`.

@@ -281,6 +281,9 @@
     <string name="toast_local_port_conflict">端口与其他本地入站端口冲突</string>
     <string name="toast_local_auth_credentials_missing">需同时设置用户名和密码，否则本地认证不会生效</string>
     <string name="toast_http_port_normalized">HTTP 端口与 SOCKS 端口相同，已改为 %1$d</string>
+    <string name="summary_pref_local_inbound_custom">这些端口对 CUSTOM 自定义配置同样生效：应用会注入本地 SOCKS/HTTP/redir 入站，其余 JSON 保持不变</string>
+    <string name="summary_pref_mode_local_direct">「本地代理 · 直连」再叠加 VPN，会拉起一条只把流量直连出去的系统 tun。启动直连时会改成「仅代理」，只开放本地端口</string>
+    <string name="toast_local_direct_switched_to_proxy">已按「仅代理」启动本地代理 · 直连（未拉起系统 VPN）</string>
 
     <string name="title_pref_local_dns_port">本地 DNS 端口</string>
     <string name="summary_pref_local_dns_port">本地 DNS 端口</string>

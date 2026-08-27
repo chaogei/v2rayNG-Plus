@@ -33,6 +33,7 @@ import com.v2ray.ang.handler.MmkvManager
 import com.v2ray.ang.enums.LocalInboundMode
 import com.v2ray.ang.handler.MmkvManager.rememberMmkvBool
 import com.v2ray.ang.handler.MmkvManager.rememberMmkvString
+import com.v2ray.ang.handler.LocalAuthPolicy
 import com.v2ray.ang.handler.SettingsChangeManager
 import com.v2ray.ang.root.RootManager
 import com.v2ray.ang.ui.base.BaseComponentActivity
@@ -118,7 +119,7 @@ fun SettingsScreen(
 
     var enableLocalProxy by rememberMmkvBool(AppConfig.PREF_ENABLE_LOCAL_PROXY, true)
     var localInboundMode by rememberMmkvString(AppConfig.PREF_LOCAL_INBOUND_MODE, LocalInboundMode.MIXED.value)
-    var socksPort by rememberMmkvString(AppConfig.PREF_SOCKS_PORT, "")
+    var socksPort by rememberMmkvString(AppConfig.PREF_SOCKS_PORT, AppConfig.PORT_SOCKS)
     var httpPort by rememberMmkvString(AppConfig.PREF_HTTP_PORT, AppConfig.PORT_HTTP)
     var dynamicSocksPort by rememberMmkvBool(AppConfig.PREF_DYNAMIC_SOCKS_PORT, false)
     var localAuthEnabled by rememberMmkvBool(AppConfig.PREF_LOCAL_AUTH_ENABLED, false)
@@ -171,7 +172,8 @@ fun SettingsScreen(
     val redirPortInt = localRedirPort.trim().toIntOrNull() ?: AppConfig.PORT_REDIR.toInt()
     // The switch alone says nothing about whether authentication is actually applied:
     // config generation drops it whenever either credential is empty.
-    val localAuthInEffect = socksUsername.isNotBlank() && socksPassword.isNotBlank()
+    val localAuthInEffect = LocalAuthPolicy.credentialsComplete(socksUsername, socksPassword)
+    val localAuthDisplayed = LocalAuthPolicy.displayEnabled(localAuthEnabled, socksUsername, socksPassword)
     // Same for the transparent inbound: a port collision makes the core config fail, so the
     // row has to say so instead of leaving the switch looking enabled.
     val redirPortConflicts = redirPortInt == socksPortInt
@@ -182,6 +184,11 @@ fun SettingsScreen(
         if (!dynamicColorSupported && dynamicColor) {
             dynamicColor = false
             ThemeManager.setDynamicColorEnabled(false)
+        }
+    }
+    LaunchedEffect(localAuthEnabled, localAuthInEffect) {
+        if (localAuthEnabled && !localAuthInEffect) {
+            localAuthEnabled = false
         }
     }
 
@@ -449,6 +456,7 @@ fun SettingsScreen(
                     entries = localInboundModeEntries,
                     values = localInboundModeValues,
                     selectedValue = localInboundMode,
+                    extraSummary = stringResource(R.string.summary_pref_local_inbound_custom),
                     enabled = effectiveLocalProxy,
                     onSelected = {
                         localInboundMode = it
@@ -509,25 +517,24 @@ fun SettingsScreen(
                     } else {
                         stringResource(R.string.summary_pref_local_auth_enabled)
                     },
-                    checked = localAuthEnabled,
+                    checked = localAuthDisplayed,
                     enabled = effectiveLocalProxy,
-                    onCheckedChange = {
-                        localAuthEnabled = it
-                        if (it) {
-                            viewModel.warnIfLocalAuthCredentialsMissing(socksUsername, socksPassword)
+                    onCheckedChange = { wantOn ->
+                        when (LocalAuthPolicy.persistEnabled(wantOn, socksUsername, socksPassword)) {
+                            true -> localAuthEnabled = true
+                            false -> localAuthEnabled = false
+                            null -> viewModel.warnIfLocalAuthCredentialsMissing(socksUsername, socksPassword)
                         }
                     }
                 )
                 SettingsEditItem(
                     title = stringResource(R.string.title_pref_socks_username),
                     value = socksUsername,
-                    enabled = effectiveLocalProxy && localAuthEnabled,
+                    enabled = effectiveLocalProxy,
                     onValueChanged = {
                         socksUsername = it
-                        // Clearing a credential silently downgrades the inbounds to noauth
-                        // while the switch above stays on, so warn on every edit, not only
-                        // when the switch is flipped.
-                        if (localAuthEnabled) {
+                        if (localAuthEnabled && !LocalAuthPolicy.credentialsComplete(it, socksPassword)) {
+                            localAuthEnabled = false
                             viewModel.warnIfLocalAuthCredentialsMissing(it, socksPassword)
                         }
                     }
@@ -535,11 +542,12 @@ fun SettingsScreen(
                 SettingsEditItem(
                     title = stringResource(R.string.title_pref_socks_password),
                     value = socksPassword,
-                    enabled = effectiveLocalProxy && localAuthEnabled,
+                    enabled = effectiveLocalProxy,
                     isPassword = true,
                     onValueChanged = {
                         socksPassword = it
-                        if (localAuthEnabled) {
+                        if (localAuthEnabled && !LocalAuthPolicy.credentialsComplete(socksUsername, it)) {
+                            localAuthEnabled = false
                             viewModel.warnIfLocalAuthCredentialsMissing(socksUsername, it)
                         }
                     }
@@ -572,7 +580,7 @@ fun SettingsScreen(
                             it,
                             AppConfig.PORT_REDIR,
                             socksPortInt,
-                            httpPortInt
+                            if (modeHasSeparateHttpPort) httpPortInt else null
                         )?.let { value -> localRedirPort = value }
                     }
                 )
@@ -776,6 +784,7 @@ fun SettingsScreen(
                     entries = modeEntries,
                     values = modeValues,
                     selectedValue = mode,
+                    extraSummary = stringResource(R.string.summary_pref_mode_local_direct),
                     onSelected = { mode = it }
                 )
                 SettingsMenuItem(

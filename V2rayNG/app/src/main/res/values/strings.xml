@@ -281,6 +281,9 @@
     <string name="toast_local_port_conflict">Port conflicts with another local inbound port</string>
     <string name="toast_local_auth_credentials_missing">Set both username and password, otherwise local authentication stays disabled</string>
     <string name="toast_http_port_normalized">The HTTP port matched the SOCKS port and was changed to %1$d</string>
+    <string name="summary_pref_local_inbound_custom">These ports also apply to CUSTOM profiles: the app injects the local SOCKS/HTTP/redir inbounds and leaves the rest of the JSON unchanged</string>
+    <string name="summary_pref_mode_local_direct">Local proxy · Direct plus VPN would create a system-wide tun that only sends traffic out directly. Starting that mode switches the run mode to Proxy only so only the local ports listen</string>
+    <string name="toast_local_direct_switched_to_proxy">Local proxy · Direct started as Proxy only (not VPN), so the system tun is not raised</string>
 
     <string name="title_pref_local_dns_port">Local DNS port</string>
     <string name="summary_pref_local_dns_port">Local DNS port</string>

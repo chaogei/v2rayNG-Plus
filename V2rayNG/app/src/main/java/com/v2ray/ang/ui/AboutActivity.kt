@@ -65,7 +65,7 @@ fun AboutScreen(
     var showOssDialog by remember { mutableStateOf(false) }
 
     val libVersion = CoreNativeManager.getLibVersion()
-    val versionText = "v${BuildConfig.VERSION_NAME} ($libVersion)"
+    val versionText = "${AppConfig.APP_FORK_NAME} v${BuildConfig.VERSION_NAME} ($libVersion)"
     val appIdText = BuildConfig.APPLICATION_ID
 
     Scaffold(
