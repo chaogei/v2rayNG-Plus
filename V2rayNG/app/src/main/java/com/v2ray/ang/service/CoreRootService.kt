@@ -31,6 +31,9 @@ import java.util.concurrent.atomic.AtomicBoolean
  */
 class CoreRootService : Service(), ServiceControl {
 
+    // Written from the main thread, but stopService() can also arrive from the setup
+    // coroutine itself when the root setup fails.
+    @Volatile
     private var setupJob: Job? = null
 
     /** Teardown outlives the service instance, so it cannot use the service's own scope. */
