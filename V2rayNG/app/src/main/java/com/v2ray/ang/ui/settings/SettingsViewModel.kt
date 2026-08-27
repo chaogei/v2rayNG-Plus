@@ -56,4 +56,36 @@ class SettingsViewModel(application: Application) : BaseViewModel(application) {
             null
         }
     }
+
+    /**
+     * Validates a local inbound port. An empty input resets the field to
+     * [defaultPort]. Shows an error toast when the port is out of range or
+     * collides with another local inbound port.
+     * @return The normalized port string if valid, null otherwise.
+     */
+    fun validateLocalPort(value: String, defaultPort: String, vararg conflictPorts: Int?): String? {
+        val trimmed = value.trim()
+        if (trimmed.isEmpty()) {
+            return defaultPort
+        }
+        val port = trimmed.toIntOrNull()
+        if (port == null || port !in 1..65535) {
+            toastError(R.string.toast_invalid_local_port)
+            return null
+        }
+        if (conflictPorts.filterNotNull().contains(port)) {
+            toastError(R.string.toast_local_port_conflict)
+            return null
+        }
+        return port.toString()
+    }
+
+    /**
+     * Warns when local auth is switched on while credentials are incomplete.
+     */
+    fun warnIfLocalAuthCredentialsMissing(username: String, password: String) {
+        if (username.isBlank() || password.isBlank()) {
+            toastError(R.string.toast_local_auth_credentials_missing)
+        }
+    }
 }

@@ -63,11 +63,16 @@ object AppConfig {
     const val PREF_PREFER_IPV6 = "pref_prefer_ipv6"
     const val PREF_PROXY_SHARING = "pref_proxy_sharing_enabled"
     const val PREF_ENABLE_LOCAL_PROXY = "pref_enable_local_proxy"
+    const val PREF_LOCAL_INBOUND_MODE = "pref_local_inbound_mode"
     const val PREF_SOCKS_PORT = "pref_socks_port"
+    const val PREF_HTTP_PORT = "pref_http_port"
     const val PREF_DYNAMIC_SOCKS_PORT = "pref_dynamic_socks_port"
+    const val PREF_LOCAL_AUTH_ENABLED = "pref_local_auth_enabled"
     const val PREF_SOCKS_USERNAME = "pref_socks_username"
     const val PREF_SOCKS_PASSWORD = "pref_socks_password"
     const val PREF_SOCKS_ENABLE_UDP = "pref_socks_enable_udp"
+    const val PREF_LOCAL_REDIR_ENABLED = "pref_local_redir_enabled"
+    const val PREF_LOCAL_REDIR_PORT = "pref_local_redir_port"
     const val PREF_REMOTE_DNS = "pref_remote_dns"
     const val PREF_DOMESTIC_DNS = "pref_domestic_dns"
     const val PREF_DNS_HOSTS = "pref_dns_hosts"
@@ -95,6 +100,9 @@ object AppConfig {
 
     /** Protocol identifiers. */
     const val PROTOCOL_FREEDOM = "freedom"
+    const val PROTOCOL_SOCKS = "socks"
+    const val PROTOCOL_HTTP = "http"
+    const val PROTOCOL_DOKODEMO = "dokodemo-door"
 
     /** Broadcast actions. */
     const val BROADCAST_ACTION_SERVICE = "$ANG_PACKAGE.action.service"
@@ -163,10 +171,18 @@ object AppConfig {
     /** Ports and addresses for various services. */
     const val PORT_LOCAL_DNS = "10853"
     const val PORT_SOCKS = "10808"
+    const val PORT_HTTP = "10809"
+    const val PORT_REDIR = "10810"
     const val WIREGUARD_LOCAL_ADDRESS_V4 = "172.16.0.2/32"
     const val WIREGUARD_LOCAL_ADDRESS_V6 = "2606:4700:110:8f81:d551:a0:532e:a2b3/128"
     const val WIREGUARD_LOCAL_MTU = "1420"
     const val LOOPBACK = "127.0.0.1"
+    const val ANY_ADDRESS = "0.0.0.0"
+
+    /** Tags for local inbounds. */
+    const val TAG_SOCKS_INBOUND = "socks"
+    const val TAG_HTTP_INBOUND = "http"
+    const val TAG_REDIR_INBOUND = "redir"
 
     /** Message constants for communication. */
     const val MSG_REGISTER_CLIENT = 1

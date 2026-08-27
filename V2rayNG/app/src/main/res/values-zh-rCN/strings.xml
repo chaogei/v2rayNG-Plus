@@ -244,18 +244,40 @@
     <string name="summary_pref_proxy_sharing_enabled">其他设备可以使用 socks/http 协议通过您的 IP 地址连接到代理, 仅在受信任的网络中启用以避免未经授权的连接</string>
     <string name="toast_warning_pref_proxysharing_short">允许来自局域网的连接，请确保处于受信网络</string>
 
-    <string name="title_pref_socks_port">本地代理端口</string>
+    <string name="title_pref_socks_port">本地 SOCKS 端口</string>
     <string name="title_pref_enable_local_proxy">启用本地代理</string>
     <string name="summary_pref_enable_local_proxy">不开启时没有 socks 代理，无法通过代理更新订阅等</string>
     <string name="title_pref_socks_enable_udp" translatable="false">SOCKS5 UDP</string>
     <string name="summary_pref_socks_enable_udp">使用 UDP 时，SOCKS5 认证并不完全安全。</string>
-    <string name="summary_pref_socks_port">本地代理端口</string>
+    <string name="summary_pref_socks_port">本地 SOCKS 端口</string>
     <string name="title_pref_dynamic_socks_port">启用动态本地代理端口</string>
     <string name="summary_pref_dynamic_socks_port">为每个 inbound 使用随机的本地代理端口</string>
-    <string name="title_pref_socks_username">本地代理用户名（可选）</string>
+    <string name="title_pref_socks_username">本地代理用户名</string>
     <string name="summary_pref_socks_username">用户名</string>
-    <string name="title_pref_socks_password">本地代理密码（可选）</string>
+    <string name="title_pref_socks_password">本地代理密码</string>
     <string name="summary_pref_socks_password">密码</string>
+
+    <string name="title_pref_local_inbound_mode">本地入站协议</string>
+    <string-array name="local_inbound_mode_entries">
+        <item>Mixed（SOCKS + HTTP 同端口）</item>
+        <item>SOCKS + HTTP（双端口）</item>
+        <item>仅 SOCKS</item>
+        <item>仅 HTTP</item>
+    </string-array>
+    <string name="title_pref_local_listen_address">本地监听地址</string>
+    <string-array name="local_listen_address_entries">
+        <item>127.0.0.1（仅本机可用）</item>
+        <item>0.0.0.0（所有网络接口，局域网可访问）</item>
+    </string-array>
+    <string name="title_pref_http_port">本地 HTTP 端口</string>
+    <string name="title_pref_local_auth_enabled">本地代理认证</string>
+    <string name="summary_pref_local_auth_enabled">为本地入站启用用户名/密码认证（SOCKS 用户名密码 + HTTP Basic）。需同时填写下方两项，否则不启用认证</string>
+    <string name="title_pref_local_redir_enabled">透明代理入站（dokodemo-door）</string>
+    <string name="summary_pref_local_redir_enabled">额外开启一个透明转发入站，需要用 iptables REDIRECT 等方式将流量重定向到此端口（通常需要 root）</string>
+    <string name="title_pref_local_redir_port">透明代理端口</string>
+    <string name="toast_invalid_local_port">端口无效：请输入 1-65535 之间的数字</string>
+    <string name="toast_local_port_conflict">端口与其他本地入站端口冲突</string>
+    <string name="toast_local_auth_credentials_missing">需同时设置用户名和密码，否则本地认证不会生效</string>
 
     <string name="title_pref_local_dns_port">本地 DNS 端口</string>
     <string name="summary_pref_local_dns_port">本地 DNS 端口</string>

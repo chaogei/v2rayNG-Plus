@@ -16,6 +16,7 @@ import com.v2ray.ang.dto.entities.ProfileItem
 import com.v2ray.ang.dto.entities.RulesetItem
 import com.v2ray.ang.dto.entities.SubscriptionItem
 import com.v2ray.ang.enums.EConfigType
+import com.v2ray.ang.enums.LocalInboundMode
 import com.v2ray.ang.enums.RoutingType
 import com.v2ray.ang.enums.VpnInterfaceAddressConfig
 import com.v2ray.ang.extension.moveItem
@@ -275,20 +276,88 @@ object SettingsManager {
         return null
     }
 
+    /**
+     * Get the configured local inbound mode (mixed / socks+http / socks / http).
+     */
+    fun getLocalInboundMode(): LocalInboundMode {
+        return LocalInboundMode.fromValue(MmkvManager.decodeSettingsString(AppConfig.PREF_LOCAL_INBOUND_MODE))
+    }
+
+    /**
+     * Whether local inbound authentication (SOCKS user/pass + HTTP basic) is enabled.
+     * Requires the explicit toggle plus non-empty credentials.
+     */
+    fun isLocalAuthEnabled(): Boolean {
+        if (MmkvManager.decodeSettingsBool(AppConfig.PREF_LOCAL_AUTH_ENABLED, false) != true) {
+            return false
+        }
+        val username = MmkvManager.decodeSettingsString(AppConfig.PREF_SOCKS_USERNAME)?.trim()
+        val password = MmkvManager.decodeSettingsString(AppConfig.PREF_SOCKS_PASSWORD)?.trim()
+        return !username.isNullOrEmpty() && !password.isNullOrEmpty()
+    }
+
     fun getSocksUsername(): String? {
+        if (!isLocalAuthEnabled()) return null
         return MmkvManager.decodeSettingsString(AppConfig.PREF_SOCKS_USERNAME)?.trim()?.takeIf { it.isNotEmpty() }
     }
 
     fun getSocksPassword(): String? {
+        if (!isLocalAuthEnabled()) return null
         return MmkvManager.decodeSettingsString(AppConfig.PREF_SOCKS_PASSWORD)?.trim()?.takeIf { it.isNotEmpty() }
     }
 
     /**
-     * Get the HTTP port.
-     * @return The HTTP port.
+     * The port the HTTP inbound is configured to listen on (used when the
+     * local inbound mode opens a dedicated HTTP inbound). Falls back to
+     * SOCKS port + 1 when it would collide with the SOCKS port.
+     */
+    fun getHttpInboundPort(): Int {
+        val port = Utils.parseInt(MmkvManager.decodeSettingsString(AppConfig.PREF_HTTP_PORT), AppConfig.PORT_HTTP.toInt())
+        val socksPort = getSocksPort()
+        return if (port == socksPort) socksPort + 1 else port
+    }
+
+    /**
+     * The effective local port that serves HTTP proxy requests, used by the
+     * app itself (subscription update, geo file download, speed test) and by
+     * the VPN "append HTTP proxy" option.
+     *
+     * Returns 0 when no local port serves HTTP in the current mode.
      */
     fun getHttpPort(): Int {
-        return getSocksPort() + if (Utils.isXray()) 0 else 1
+        return when (getLocalInboundMode()) {
+            // Xray's socks inbound natively accepts HTTP on the same port;
+            // other cores get a dedicated HTTP inbound on port+1.
+            LocalInboundMode.MIXED -> getSocksPort() + if (Utils.isXray()) 0 else 1
+            LocalInboundMode.SOCKS_HTTP, LocalInboundMode.HTTP -> getHttpInboundPort()
+            LocalInboundMode.SOCKS -> if (Utils.isXray()) getSocksPort() else 0
+        }
+    }
+
+    /**
+     * Address the local inbounds listen on. 0.0.0.0 when LAN sharing is
+     * enabled, loopback otherwise.
+     */
+    fun getLocalListenAddress(): String {
+        return if (MmkvManager.decodeSettingsBool(AppConfig.PREF_PROXY_SHARING) == true) {
+            AppConfig.ANY_ADDRESS
+        } else {
+            AppConfig.LOOPBACK
+        }
+    }
+
+    /**
+     * Whether the optional transparent redirect (dokodemo-door) inbound is enabled.
+     */
+    fun isLocalRedirEnabled(): Boolean {
+        return MmkvManager.decodeSettingsBool(AppConfig.PREF_LOCAL_REDIR_ENABLED, false)
+    }
+
+    /**
+     * Port of the optional transparent redirect (dokodemo-door) inbound.
+     */
+    fun getLocalRedirPort(): Int {
+        return Utils.parseInt(MmkvManager.decodeSettingsString(AppConfig.PREF_LOCAL_REDIR_PORT), AppConfig.PORT_REDIR.toInt())
     }
 
     private fun IsDynamicSocksPort(): Boolean {
@@ -461,6 +530,8 @@ object SettingsManager {
         ensureDefaultValue(AppConfig.PREF_VPN_DNS, AppConfig.DNS_VPN)
         ensureDefaultValue(AppConfig.PREF_VPN_MTU, AppConfig.VPN_MTU.toString())
         ensureDefaultValue(AppConfig.PREF_SOCKS_PORT, AppConfig.PORT_SOCKS)
+        ensureDefaultValue(AppConfig.PREF_HTTP_PORT, AppConfig.PORT_HTTP)
+        ensureDefaultValue(AppConfig.PREF_LOCAL_INBOUND_MODE, LocalInboundMode.MIXED.value)
         ensureDefaultValue(AppConfig.PREF_REMOTE_DNS, AppConfig.DNS_PROXY)
         ensureDefaultValue(AppConfig.PREF_DOMESTIC_DNS, AppConfig.DNS_DIRECT)
         ensureDefaultValue(AppConfig.PREF_DELAY_TEST_URL, AppConfig.DELAY_TEST_URL)

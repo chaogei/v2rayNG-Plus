@@ -244,18 +244,40 @@
     <string name="summary_pref_proxy_sharing_enabled">Other devices can connect to proxy by your IP address through local proxy. Only enable in trusted networks to avoid unauthorized connections</string>
     <string name="toast_warning_pref_proxysharing_short">Allow connections from the LAN. Make sure you are in a trusted network</string>
 
-    <string name="title_pref_socks_port">Local proxy port</string>
+    <string name="title_pref_socks_port">Local SOCKS port</string>
     <string name="title_pref_enable_local_proxy">Enable local proxy</string>
     <string name="summary_pref_enable_local_proxy">When disabled, no SOCKS proxy is available, so subscription updates and similar actions cannot use the proxy</string>
     <string name="title_pref_socks_enable_udp" translatable="false">SOCKS5 UDP</string>
     <string name="summary_pref_socks_enable_udp">SOCKS5 authentication is not fully secure when using UDP.</string>
-    <string name="summary_pref_socks_port">Local proxy port</string>
+    <string name="summary_pref_socks_port">Local SOCKS port</string>
     <string name="title_pref_dynamic_socks_port">Enable dynamic local proxy port</string>
     <string name="summary_pref_dynamic_socks_port">Use a random local proxy port for each inbound</string>
-    <string name="title_pref_socks_username">Local proxy username (optional)</string>
+    <string name="title_pref_socks_username">Local proxy username</string>
     <string name="summary_pref_socks_username">Username</string>
-    <string name="title_pref_socks_password">Local proxy password (optional)</string>
+    <string name="title_pref_socks_password">Local proxy password</string>
     <string name="summary_pref_socks_password">Password</string>
+
+    <string name="title_pref_local_inbound_mode">Local inbound protocol</string>
+    <string-array name="local_inbound_mode_entries">
+        <item>Mixed (SOCKS + HTTP, one port)</item>
+        <item>SOCKS + HTTP (two ports)</item>
+        <item>SOCKS only</item>
+        <item>HTTP only</item>
+    </string-array>
+    <string name="title_pref_local_listen_address">Local listen address</string>
+    <string-array name="local_listen_address_entries">
+        <item>127.0.0.1 (this device only)</item>
+        <item>0.0.0.0 (all interfaces, reachable from the LAN)</item>
+    </string-array>
+    <string name="title_pref_http_port">Local HTTP port</string>
+    <string name="title_pref_local_auth_enabled">Local proxy authentication</string>
+    <string name="summary_pref_local_auth_enabled">Require username/password on the local inbounds (SOCKS user/pass and HTTP basic auth). Set both fields below, otherwise no authentication is applied</string>
+    <string name="title_pref_local_redir_enabled">Transparent proxy inbound (dokodemo-door)</string>
+    <string name="summary_pref_local_redir_enabled">Open an extra transparent redirect inbound. Traffic must be redirected to this port externally (e.g. iptables REDIRECT), which usually requires root</string>
+    <string name="title_pref_local_redir_port">Transparent proxy port</string>
+    <string name="toast_invalid_local_port">Invalid port: use a number between 1 and 65535</string>
+    <string name="toast_local_port_conflict">Port conflicts with another local inbound port</string>
+    <string name="toast_local_auth_credentials_missing">Set both username and password, otherwise local authentication stays disabled</string>
 
     <string name="title_pref_local_dns_port">Local DNS port</string>
     <string name="summary_pref_local_dns_port">Local DNS port</string>

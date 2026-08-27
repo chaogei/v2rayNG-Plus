@@ -12,7 +12,7 @@ import com.v2ray.ang.dto.entities.ProfileItem
 import com.v2ray.ang.dto.entities.RulesetItem
 import com.v2ray.ang.enums.BalancerStrategyType
 import com.v2ray.ang.enums.CoreResolvedType
-import com.v2ray.ang.enums.EConfigType
+import com.v2ray.ang.enums.LocalInboundMode
 import com.v2ray.ang.extension.isNotNullEmpty
 import com.v2ray.ang.handler.MmkvManager
 import com.v2ray.ang.handler.SettingsManager
@@ -489,6 +489,17 @@ object CoreConfigManager {
 
     /**
      * Configure inbound listeners and related runtime options.
+     *
+     * The local inbound layout is driven by [AppConfig.PREF_LOCAL_INBOUND_MODE]:
+     * - MIXED: one port serving SOCKS + HTTP (Xray's socks inbound natively
+     *   accepts HTTP; other cores get an extra HTTP inbound on port + 1).
+     * - SOCKS_HTTP: SOCKS on the SOCKS port plus HTTP on a dedicated port.
+     * - SOCKS: SOCKS inbound only.
+     * - HTTP: HTTP inbound only; an internal SOCKS inbound is still kept when
+     *   the VPN (hev-tun) or root mode requires it as the tunnel target.
+     *
+     * An optional dokodemo-door inbound (transparent redirect) can be enabled
+     * on top of any mode.
      */
     private fun configureInbounds(v2rayConfig: V2rayConfig) {
         val vpn = SettingsManager.isVpnMode()
@@ -499,63 +510,119 @@ object CoreConfigManager {
 
         val enableLocalProxy = forcedByHev || forcedBySocksRoot || MmkvManager.decodeSettingsBool(AppConfig.PREF_ENABLE_LOCAL_PROXY, true)
 
+        val mode = SettingsManager.getLocalInboundMode()
+        val listenAddress = SettingsManager.getLocalListenAddress()
         val socksPort = SettingsManager.getSocksPort()
+        val authEnabled = SettingsManager.isLocalAuthEnabled()
         val socksUsername = SettingsManager.getSocksUsername()
         val socksPassword = SettingsManager.getSocksPassword()
-        val inbound1 = v2rayConfig.inbounds[0]
-        if (inbound1.settings == null) {
-            inbound1.settings = V2rayConfig.InboundBean.InSettingsBean()
+        val inboundSocks = v2rayConfig.inbounds[0]
+        if (inboundSocks.settings == null) {
+            inboundSocks.settings = V2rayConfig.InboundBean.InSettingsBean()
         }
 
-        if (MmkvManager.decodeSettingsBool(AppConfig.PREF_PROXY_SHARING) != true) {
-            inbound1.listen = AppConfig.LOOPBACK
-        }
-        inbound1.port = socksPort
-        inbound1.settings?.udp = MmkvManager.decodeSettingsBool(AppConfig.PREF_SOCKS_ENABLE_UDP, true)
-        if (socksUsername != null && socksPassword != null) {
-            inbound1.settings?.auth = "password"
-            inbound1.settings?.accounts = listOf(
+        inboundSocks.listen = listenAddress
+        inboundSocks.port = socksPort
+        inboundSocks.settings?.udp = MmkvManager.decodeSettingsBool(AppConfig.PREF_SOCKS_ENABLE_UDP, true)
+        if (authEnabled && socksUsername != null && socksPassword != null) {
+            // On Xray the same credentials also protect HTTP requests hitting
+            // the socks inbound (mixed behavior).
+            inboundSocks.settings?.auth = "password"
+            inboundSocks.settings?.accounts = listOf(
                 V2rayConfig.InboundBean.InSettingsBean.SocksAccountBean(
                     user = socksUsername,
                     pass = socksPassword
                 )
             )
         } else {
-            inbound1.settings?.auth = "noauth"
-            inbound1.settings?.accounts = null
+            inboundSocks.settings?.auth = "noauth"
+            inboundSocks.settings?.accounts = null
         }
         val fakedns = MmkvManager.decodeSettingsBool(AppConfig.PREF_FAKE_DNS_ENABLED) == true
         val sniffAllTlsAndHttp =
             MmkvManager.decodeSettingsBool(AppConfig.PREF_SNIFFING_ENABLED, true) != false
-        inbound1.sniffing?.enabled = fakedns || sniffAllTlsAndHttp
-        inbound1.sniffing?.routeOnly =
+        inboundSocks.sniffing?.enabled = fakedns || sniffAllTlsAndHttp
+        inboundSocks.sniffing?.routeOnly =
             MmkvManager.decodeSettingsBool(AppConfig.PREF_ROUTE_ONLY_ENABLED, false)
         if (!sniffAllTlsAndHttp) {
-            inbound1.sniffing?.destOverride?.clear()
+            inboundSocks.sniffing?.destOverride?.clear()
         }
         if (fakedns) {
-            inbound1.sniffing?.destOverride?.add("fakedns")
+            inboundSocks.sniffing?.destOverride?.add("fakedns")
         }
 
-        if (!Utils.isXray()) {
-            val inbound2 = JsonUtil.fromJson(JsonUtil.toJson(inbound1), V2rayConfig.InboundBean::class.java)
+        // The SOCKS inbound is kept whenever the mode includes SOCKS, and is
+        // forced in VPN (hev-tun) and root modes where it is the tunnel target.
+        val socksRequired = forcedByHev || forcedBySocksRoot || mode != LocalInboundMode.HTTP
+        val httpRequired = when (mode) {
+            // Xray's socks inbound natively accepts HTTP, no extra inbound needed.
+            LocalInboundMode.MIXED -> !Utils.isXray()
+            LocalInboundMode.SOCKS_HTTP, LocalInboundMode.HTTP -> true
+            LocalInboundMode.SOCKS -> false
+        }
+
+        if (httpRequired) {
+            val httpPort = if (mode == LocalInboundMode.MIXED) {
+                socksPort + 1
+            } else {
+                SettingsManager.getHttpInboundPort()
+            }
+            val inboundHttp = JsonUtil.fromJson(JsonUtil.toJson(inboundSocks), V2rayConfig.InboundBean::class.java)
                 ?: error("Failed to clone inbound template")
-            inbound2.tag = EConfigType.HTTP.name.lowercase()
-            inbound2.port = SettingsManager.getHttpPort()
-            inbound2.protocol = EConfigType.HTTP.name.lowercase()
-            inbound2.settings?.auth = null
-            inbound2.settings?.udp = null
-            v2rayConfig.inbounds.add(inbound2)
+            inboundHttp.tag = AppConfig.TAG_HTTP_INBOUND
+            inboundHttp.protocol = AppConfig.PROTOCOL_HTTP
+            inboundHttp.port = if (socksRequired && httpPort == socksPort) socksPort + 1 else httpPort
+            inboundHttp.settings?.auth = null
+            inboundHttp.settings?.udp = null
+            // HTTP basic auth uses the same credentials as SOCKS; the cloned
+            // accounts list is kept when auth is enabled and cleared otherwise.
+            if (!authEnabled) {
+                inboundHttp.settings?.accounts = null
+            }
+            v2rayConfig.inbounds.add(inboundHttp)
+        }
+
+        if (!socksRequired) {
+            v2rayConfig.inbounds.removeIf { it.protocol == AppConfig.PROTOCOL_SOCKS }
+        }
+
+        // Optional transparent redirect inbound (dokodemo-door). Traffic must be
+        // redirected to this port externally (e.g. iptables REDIRECT), which
+        // usually requires root.
+        if (enableLocalProxy && SettingsManager.isLocalRedirEnabled()) {
+            val redirPort = SettingsManager.getLocalRedirPort()
+            val usedPorts = v2rayConfig.inbounds.mapNotNull { it.port }.toSet()
+            if (redirPort in usedPorts) {
+                LogUtil.w(AppConfig.TAG, "Transparent redirect port $redirPort conflicts with another local inbound, skipping redir inbound")
+            } else {
+                v2rayConfig.inbounds.add(
+                    V2rayConfig.InboundBean(
+                        tag = AppConfig.TAG_REDIR_INBOUND,
+                        port = redirPort,
+                        protocol = AppConfig.PROTOCOL_DOKODEMO,
+                        listen = listenAddress,
+                        settings = V2rayConfig.InboundBean.InSettingsBean(
+                            network = "tcp,udp",
+                            followRedirect = true,
+                            userLevel = inboundSocks.settings?.userLevel
+                        ),
+                        sniffing = JsonUtil.fromJson(
+                            JsonUtil.toJson(inboundSocks.sniffing),
+                            V2rayConfig.InboundBean.SniffingBean::class.java
+                        )
+                    )
+                )
+            }
         }
 
         if (!enableLocalProxy) {
-            v2rayConfig.inbounds.removeIf { it.protocol == "socks" || it.protocol == "http" }
+            v2rayConfig.inbounds.removeIf { it.protocol == AppConfig.PROTOCOL_SOCKS || it.protocol == AppConfig.PROTOCOL_HTTP }
         }
 
         if (needTun()) {
             val inboundTun = v2rayConfig.inbounds.firstOrNull { e -> e.tag == "tun" }
             inboundTun?.settings?.mtu = SettingsManager.getVpnMtu()
-            inboundTun?.sniffing = inbound1.sniffing
+            inboundTun?.sniffing = inboundSocks.sniffing
         }
     }
 

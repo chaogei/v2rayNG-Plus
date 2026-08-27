@@ -248,7 +248,12 @@ class CoreVpnService : VpnService(), ServiceControl {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             builder.setMetered(false)
             if (MmkvManager.decodeSettingsBool(AppConfig.PREF_APPEND_HTTP_PROXY)) {
-                builder.setHttpProxy(ProxyInfo.buildDirectProxy(LOOPBACK, SettingsManager.getHttpPort()))
+                // No local port serves HTTP in some inbound modes (e.g. SOCKS-only
+                // on non-Xray cores); skip appending the proxy in that case.
+                val httpPort = SettingsManager.getHttpPort()
+                if (httpPort > 0) {
+                    builder.setHttpProxy(ProxyInfo.buildDirectProxy(LOOPBACK, httpPort))
+                }
             }
         }
     }

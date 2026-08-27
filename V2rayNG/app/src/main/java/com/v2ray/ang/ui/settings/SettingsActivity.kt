@@ -30,6 +30,7 @@ import com.v2ray.ang.AppConfig.VPN
 import com.v2ray.ang.R
 import com.v2ray.ang.handler.AppLocaleManager
 import com.v2ray.ang.handler.MmkvManager
+import com.v2ray.ang.enums.LocalInboundMode
 import com.v2ray.ang.handler.MmkvManager.rememberMmkvBool
 import com.v2ray.ang.handler.MmkvManager.rememberMmkvString
 import com.v2ray.ang.handler.SettingsChangeManager
@@ -115,12 +116,17 @@ fun SettingsScreen(
     var useHevTun by rememberMmkvBool(AppConfig.PREF_USE_HEV_TUNNEL, true)
 
     var enableLocalProxy by rememberMmkvBool(AppConfig.PREF_ENABLE_LOCAL_PROXY, true)
+    var localInboundMode by rememberMmkvString(AppConfig.PREF_LOCAL_INBOUND_MODE, LocalInboundMode.MIXED.value)
     var socksPort by rememberMmkvString(AppConfig.PREF_SOCKS_PORT, "")
+    var httpPort by rememberMmkvString(AppConfig.PREF_HTTP_PORT, AppConfig.PORT_HTTP)
     var dynamicSocksPort by rememberMmkvBool(AppConfig.PREF_DYNAMIC_SOCKS_PORT, false)
+    var localAuthEnabled by rememberMmkvBool(AppConfig.PREF_LOCAL_AUTH_ENABLED, false)
     var socksUsername by rememberMmkvString(AppConfig.PREF_SOCKS_USERNAME, "")
     var socksPassword by rememberMmkvString(AppConfig.PREF_SOCKS_PASSWORD, "")
     var socksEnableUdp by rememberMmkvBool(AppConfig.PREF_SOCKS_ENABLE_UDP, false)
     var proxySharing by rememberMmkvBool(AppConfig.PREF_PROXY_SHARING, false)
+    var localRedirEnabled by rememberMmkvBool(AppConfig.PREF_LOCAL_REDIR_ENABLED, false)
+    var localRedirPort by rememberMmkvString(AppConfig.PREF_LOCAL_REDIR_PORT, AppConfig.PORT_REDIR)
 
     var speedEnabled by rememberMmkvBool(AppConfig.PREF_SPEED_ENABLED, false)
     var confirmRemove by rememberMmkvBool(AppConfig.PREF_CONFIRM_REMOVE, false)
@@ -155,6 +161,13 @@ fun SettingsScreen(
     val effectiveLocalProxy = enableLocalProxy || localProxyForced
     val muxXudpConcurrencyInt = muxXudpConcurrency.toIntOrNull() ?: 8
 
+    val inboundMode = LocalInboundMode.fromValue(localInboundMode)
+    val modeHasSocks = inboundMode != LocalInboundMode.HTTP
+    val modeHasSeparateHttpPort = inboundMode == LocalInboundMode.SOCKS_HTTP || inboundMode == LocalInboundMode.HTTP
+    val socksPortInt = socksPort.trim().toIntOrNull() ?: AppConfig.PORT_SOCKS.toInt()
+    val httpPortInt = httpPort.trim().toIntOrNull() ?: AppConfig.PORT_HTTP.toInt()
+    val redirPortInt = localRedirPort.trim().toIntOrNull() ?: AppConfig.PORT_REDIR.toInt()
+
     val dynamicColorSupported = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
     LaunchedEffect(dynamicColorSupported) {
         if (!dynamicColorSupported && dynamicColor) {
@@ -185,6 +198,10 @@ fun SettingsScreen(
     val observatoryLeastLoadMethodValues = stringArrayResource(R.array.observatory_least_load_method).toList()
     val modeEntries = stringArrayResource(R.array.mode_entries).toList()
     val modeValues = stringArrayResource(R.array.mode_value).toList()
+    val localInboundModeEntries = stringArrayResource(R.array.local_inbound_mode_entries).toList()
+    val localInboundModeValues = stringArrayResource(R.array.local_inbound_mode_value).toList()
+    val localListenAddressEntries = stringArrayResource(R.array.local_listen_address_entries).toList()
+    val localListenAddressValues = stringArrayResource(R.array.local_listen_address_value).toList()
 
     Scaffold(
         contentWindowInsets = WindowInsets(0),
@@ -400,37 +417,79 @@ fun SettingsScreen(
                         }
                     }
                 )
-                SettingsSwitchItem(
-                    title = stringResource(R.string.title_pref_proxy_sharing_enabled),
-                    summary = stringResource(R.string.summary_pref_proxy_sharing_enabled),
-                    checked = proxySharing,
+                SettingsListItem(
+                    title = stringResource(R.string.title_pref_local_inbound_mode),
+                    entries = localInboundModeEntries,
+                    values = localInboundModeValues,
+                    selectedValue = localInboundMode,
                     enabled = effectiveLocalProxy,
-                    onCheckedChange = { proxySharing = it }
+                    onSelected = { localInboundMode = it }
+                )
+                SettingsListItem(
+                    title = stringResource(R.string.title_pref_local_listen_address),
+                    entries = localListenAddressEntries,
+                    values = localListenAddressValues,
+                    selectedValue = if (proxySharing) AppConfig.ANY_ADDRESS else AppConfig.LOOPBACK,
+                    enabled = effectiveLocalProxy,
+                    onSelected = { proxySharing = it == AppConfig.ANY_ADDRESS }
                 )
                 SettingsSwitchItem(
                     title = stringResource(R.string.title_pref_dynamic_socks_port),
                     summary = stringResource(R.string.summary_pref_dynamic_socks_port),
                     checked = dynamicSocksPort,
-                    enabled = effectiveLocalProxy,
+                    enabled = effectiveLocalProxy && modeHasSocks,
                     onCheckedChange = { dynamicSocksPort = it }
                 )
                 SettingsEditItem(
                     title = stringResource(R.string.title_pref_socks_port),
                     value = socksPort,
-                    enabled = effectiveLocalProxy && !dynamicSocksPort,
+                    enabled = effectiveLocalProxy && modeHasSocks && !dynamicSocksPort,
                     keyboardNumber = true,
-                    onValueChanged = { socksPort = it }
+                    onValueChanged = {
+                        viewModel.validateLocalPort(
+                            it,
+                            AppConfig.PORT_SOCKS,
+                            if (modeHasSeparateHttpPort) httpPortInt else null,
+                            if (localRedirEnabled) redirPortInt else null
+                        )?.let { value -> socksPort = value }
+                    }
+                )
+                SettingsEditItem(
+                    title = stringResource(R.string.title_pref_http_port),
+                    value = httpPort,
+                    enabled = effectiveLocalProxy && modeHasSeparateHttpPort,
+                    keyboardNumber = true,
+                    onValueChanged = {
+                        viewModel.validateLocalPort(
+                            it,
+                            AppConfig.PORT_HTTP,
+                            if (modeHasSocks) socksPortInt else null,
+                            if (localRedirEnabled) redirPortInt else null
+                        )?.let { value -> httpPort = value }
+                    }
+                )
+                SettingsSwitchItem(
+                    title = stringResource(R.string.title_pref_local_auth_enabled),
+                    summary = stringResource(R.string.summary_pref_local_auth_enabled),
+                    checked = localAuthEnabled,
+                    enabled = effectiveLocalProxy,
+                    onCheckedChange = {
+                        localAuthEnabled = it
+                        if (it) {
+                            viewModel.warnIfLocalAuthCredentialsMissing(socksUsername, socksPassword)
+                        }
+                    }
                 )
                 SettingsEditItem(
                     title = stringResource(R.string.title_pref_socks_username),
                     value = socksUsername,
-                    enabled = effectiveLocalProxy,
+                    enabled = effectiveLocalProxy && localAuthEnabled,
                     onValueChanged = { socksUsername = it }
                 )
                 SettingsEditItem(
                     title = stringResource(R.string.title_pref_socks_password),
                     value = socksPassword,
-                    enabled = effectiveLocalProxy,
+                    enabled = effectiveLocalProxy && localAuthEnabled,
                     isPassword = true,
                     onValueChanged = { socksPassword = it }
                 )
@@ -438,8 +497,29 @@ fun SettingsScreen(
                     title = stringResource(R.string.title_pref_socks_enable_udp),
                     summary = stringResource(R.string.summary_pref_socks_enable_udp),
                     checked = socksEnableUdp,
-                    enabled = effectiveLocalProxy,
+                    enabled = effectiveLocalProxy && modeHasSocks,
                     onCheckedChange = { socksEnableUdp = it }
+                )
+                SettingsSwitchItem(
+                    title = stringResource(R.string.title_pref_local_redir_enabled),
+                    summary = stringResource(R.string.summary_pref_local_redir_enabled),
+                    checked = localRedirEnabled,
+                    enabled = effectiveLocalProxy,
+                    onCheckedChange = { localRedirEnabled = it }
+                )
+                SettingsEditItem(
+                    title = stringResource(R.string.title_pref_local_redir_port),
+                    value = localRedirPort,
+                    enabled = effectiveLocalProxy && localRedirEnabled,
+                    keyboardNumber = true,
+                    onValueChanged = {
+                        viewModel.validateLocalPort(
+                            it,
+                            AppConfig.PORT_REDIR,
+                            if (modeHasSocks) socksPortInt else null,
+                            if (modeHasSeparateHttpPort) httpPortInt else null
+                        )?.let { value -> localRedirPort = value }
+                    }
                 )
                 SettingsEditItem(
                     title = stringResource(R.string.title_pref_remote_dns),

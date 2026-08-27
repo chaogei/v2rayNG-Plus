@@ -47,7 +47,14 @@ data class V2rayConfig(
             var accounts: List<SocksAccountBean>? = null,
             var name: String? = null,
 
-            var mtu: Int? = null
+            var mtu: Int? = null,
+
+            /* dokodemo-door (transparent redirect) */
+            var network: String? = null,
+            var followRedirect: Boolean? = null,
+
+            /* http */
+            var allowTransparent: Boolean? = null
         ) {
             data class SocksAccountBean(
                 var user: String = "",
