@@ -16,7 +16,7 @@ import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Shapes
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -263,10 +263,16 @@ fun GlassDialogWindowEffect(radius: Dp = 20.dp) {
     if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return
     val view = LocalView.current
     val radiusPx = with(LocalDensity.current) { radius.roundToPx() }
-    SideEffect {
-        val window = (view.parent as? DialogWindowProvider)?.window ?: return@SideEffect
-        window.addFlags(WindowManager.LayoutParams.FLAG_BLUR_BEHIND)
-        window.attributes = window.attributes.also { it.blurBehindRadius = radiusPx }
+    // Assigning window.attributes triggers a WindowManager relayout, and the radius is a
+    // constant: a SideEffect here would repeat that on every recomposition, i.e. once per
+    // keystroke in an input dialog.
+    DisposableEffect(view, radiusPx) {
+        val window = (view.parent as? DialogWindowProvider)?.window
+        if (window != null) {
+            window.addFlags(WindowManager.LayoutParams.FLAG_BLUR_BEHIND)
+            window.attributes = window.attributes.also { it.blurBehindRadius = radiusPx }
+        }
+        onDispose { }
     }
 }
 
