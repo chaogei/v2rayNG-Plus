@@ -33,6 +33,6 @@ echo "sdk.dir=<你的 Android SDK 路径>" > local.properties
 
 ## 版本身份
 
-- 仓库基线版本：`2.3.5-plus`（`versionCode` 746）；CI 发版时自动递增为 `2.3.5.<n>-plus`（见根 README「自动发版」）
+- 仓库基线版本：`2.3.5-plus`（`versionCode` 746）；CI 发版时按已有 Release tag 自动递增为 `2.3.5.<n>-plus`，PR 构建不占用发版序号（见根 README「自动发版」）
 - applicationId（fdroid）：`com.v2ray.ang.fdroid`
 - 检查更新 / 关于 / 源码：`https://github.com/chaogei/v2rayNG-Plus`

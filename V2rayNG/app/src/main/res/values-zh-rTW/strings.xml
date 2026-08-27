@@ -282,16 +282,18 @@
     <string name="toast_local_port_conflict">埠與其他本機入站埠衝突</string>
     <string name="toast_local_auth_credentials_missing">需同時設定使用者名稱和密碼，否則本機認證不會生效</string>
     <string name="toast_http_port_normalized">HTTP 埠與 SOCKS 埠相同，已改為 %1$d</string>
-    <string name="summary_pref_local_inbound_custom">這些埠對 CUSTOM 自訂設定同樣生效：應用會注入本機 SOCKS/HTTP/redir 入站，其餘 JSON 保持不變</string>
+    <string name="summary_pref_local_inbound_custom">這些設定對 CUSTOM 自訂設定同樣生效：啟動時其中的 SOCKS/HTTP/redir 入站會被替換為上面的本機入站，JSON 其餘部分不動</string>
     <string name="summary_pref_mode_local_direct">「本機代理 · 直連」再疊加 VPN，會拉起一條只把流量直連出去的系統 tun。啟動直連時會改成「僅代理」，只開放本機埠</string>
     <string name="toast_local_direct_switched_to_proxy">已依「僅代理」啟動本機代理 · 直連（未拉起系統 VPN）</string>
     <string name="dialog_vpn_while_direct_title">切換到 VPN 模式？</string>
     <string name="dialog_vpn_while_direct_message">目前為「本機代理 · 直連」。VPN 疊加直連出站會讓整機流量經系統 tun 直接送出，因此下次啟動直連時會自動改回「僅代理」。仍要切換到 VPN 嗎？</string>
-    <string name="summary_pref_local_inbound_custom_selected">目前選取的是 CUSTOM 自訂設定：應用會把這些本機 SOCKS/HTTP/redir 入站注入其 JSON，其餘內容保持不變</string>
+    <string name="summary_pref_local_inbound_custom_selected">注意：目前選取的就是 CUSTOM 自訂設定——啟動時它的 SOCKS/HTTP/redir 入站會被替換為上面的本機入站，JSON 其餘部分（包括 tun 入站）按原樣執行</string>
     <string name="update_source_notice">更新來源：%1$s（%2$s），2dust/v2rayNG 的 fork —— 不是官方套件</string>
     <string name="update_already_latest_version_fork">%1$s 已是最新版本</string>
-    <string name="empty_server_list_direct_hint">點右上角 + 新增或匯入伺服器；也可以不加節點直接啟動：本機代理埠照常監聽，出站為直連（freedom）</string>
+    <string name="empty_server_list_direct_hint">點右上角 + 新增或匯入伺服器；或點下方按鈕啟動「本機代理 · 直連」——無需節點，本機埠照常監聽，流量直接出站</string>
     <string name="action_start_local_proxy_direct">啟動本機代理 · 直連</string>
+    <string name="server_custom_type_note">CUSTOM · 會注入本機入站</string>
+    <string name="summary_custom_config_editor">這份 JSON 會原樣儲存；啟動時應用仍會把其中的 SOCKS/HTTP/redir 入站替換為設定中的本機入站，其餘內容（含 tun）按原樣執行</string>
 
     <string name="title_pref_local_dns_port">本機 DNS 埠</string>
     <string name="summary_pref_local_dns_port">本機 DNS 埠</string>
@@ -345,7 +347,6 @@
     <string name="theme_preset_graphite">石墨紫</string>
     <string name="theme_preset_silver">冷灰銀</string>
     <string name="empty_server_list">還沒有節點</string>
-    <string name="empty_server_list_hint">點右上角 + 新增或匯入伺服器</string>
     <string name="empty_search_result">沒有符合的節點</string>
     <string name="empty_sub_list">還沒有訂閱</string>
     <string name="empty_sub_list_hint">點右上角 + 新增訂閱分組</string>

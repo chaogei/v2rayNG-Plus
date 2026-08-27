@@ -68,11 +68,12 @@ curl -x socks5h://user:pass@<IP>:10808 https://www.gstatic.com/generate_204 -v
 
 每次推送到 `master`，CI（`.github/workflows/build.yml`）都会自动编译并**发布一个 GitHub Release**（fdroid + playstore 两个 flavor 的 release 包，全 ABI split + universal）。应用内「检查更新」读取的就是本仓库的 Releases（`https://api.github.com/repos/chaogei/v2rayNG-Plus/releases`）。
 
-- **版本算法**（不回写仓库，杜绝「发版 commit 又触发发版」死循环）：
-  - `versionCode = 746 + run_number`（746 为仓库内基线）
-  - `versionName = 2.3.5.<run_number>-plus`，Release tag 为 `v<versionName>`（如 `v2.3.6.12-plus` 风格的 `v2.3.5.12-plus`）
+- **版本算法**（`.github/scripts/compute-version.sh`，不回写仓库，杜绝「发版 commit 又触发发版」死循环；完全不使用 `run_number`，PR 构建不会让发版序号跳号）：
+  - 正式发版：`N = 已有 v2.3.5.N-plus tag 的最大 N + 1`（一个 tag 都没有则 `N = 1`），`versionCode = 746 + N`（746 为仓库内基线），`versionName = 2.3.5.<N>-plus`，Release tag 为 `v<versionName>`。例：已发 `v2.3.5.3-plus`，无论中间跑了多少 PR，下一次 `master` push 一定是 `v2.3.5.4-plus` / versionCode 750
+  - PR 构建（不发 Release）：`versionCode = 746 + 最近已发版的 N`，`versionName = 2.3.5.<最近 N>-pr.<短 sha>-plus`，数字部分不超过已发布版本，误装 PR 产物后检查更新仍会提示正式新版
   - 应用内 `VersionUtil` 比较版本时会丢掉 `-`/`+` 后缀，所以由第 4 位数字段保证「新版本 > 已装版本」
   - 版本号通过 `-PversionCode` / `-PversionName` 注入 Gradle（`app/build.gradle.kts` 读 project property，本地构建仍用仓库里的默认值）
+  - 版本脚本可离线自测：`bash .github/scripts/compute-version-test.sh`
 - **触发规则**：`push` 到 `master` → 构建 + 发 Release；PR → 只构建 arm64 artifact，不发 Release；`workflow_dispatch` → 手动发版，可用 `release_tag` 输入指定 tag（如 `v2.4.0-plus`）
 - **需要的 GitHub secrets**（仓库 Settings → Secrets and variables → Actions）：
   | Secret | 作用 | 缺失时 |

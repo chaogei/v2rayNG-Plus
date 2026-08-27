@@ -8,19 +8,23 @@ name: Build APK
 #   - workflow_dispatch        -> manual build + release; `release_tag` overrides the
 #                                 computed tag (e.g. v2.4.0-plus), empty = automatic
 #
-# Version algorithm (no commit is written back to the repo, so a release can never
-# retrigger itself):
-#   N           = max(github.run_number, highest N in existing v2.3.5.N-plus tags + 1)
-#   versionCode = 746 + N                            (746 = committed baseline)
-#   versionName = 2.3.5.<N>-plus                     (baseline 2.3.5-plus)
-#   release tag = v<versionName>
+# Version algorithm (.github/scripts/compute-version.sh, tested by
+# compute-version-test.sh; no commit is written back to the repo, so a release can
+# never retrigger itself). github.run_number is NOT used anywhere: PR runs consume
+# run numbers too, so releases anchored on it would skip numbers.
+#   Release (push / dispatch): N = highest N in existing v2.3.5.N-plus tags + 1
+#                              (no tags -> N = 1)
+#                              versionCode = 746 + N, versionName = 2.3.5.<N>-plus,
+#                              release tag = v<versionName>
+#   PR build (never released): versionCode = 746 + last released N,
+#                              versionName = 2.3.5.<last N>-pr.<sha>-plus
+# Example: with v2.3.5.3-plus released, the next master push is always
+# v2.3.5.4-plus / versionCode 750, no matter how many PRs ran in between.
 # The in-app updater compares versions with VersionUtil, which strips everything
-# after '-'/'+'. Appending a growing 4th numeric segment (2.3.5.N) therefore reads
-# strictly newer than the installed 2.3.5-plus, and newer than every previous run.
-# run_number increases on every workflow run (PRs included), so N may skip numbers.
-# Anchoring on the existing release tags protects against run_number going BACKWARDS,
-# which happens when the workflow file is deleted/recreated (run_number resets to 1)
-# and on re-runs of an already-released run (same run_number, tag already taken).
+# after '-'/'+'. The growing 4th numeric segment keeps releases strictly ordered;
+# a PR versionName reuses the last released segment, so a sideloaded PR build never
+# reads newer than the real releases. Both checkouts keep fetch-depth 0 +
+# fetch-tags so the tag scan sees every release.
 #
 # Signing:
 #   - With APP_KEYSTORE_BASE64 / APP_KEYSTORE_PASSWORD / APP_KEYSTORE_ALIAS /
@@ -66,38 +70,17 @@ jobs:
         # brings them in, this simply keeps that guaranteed if the depth changes.
         fetch-tags: 'true'
 
+    # Releases count up from the existing v2.3.5.N-plus tags; PR builds reuse the
+    # last released N with a -pr.<sha> marker. run_number is not involved, so PR
+    # runs can no longer punch holes into the release numbering. The script is
+    # covered by .github/scripts/compute-version-test.sh (plain bash, no repo needed).
     - name: Compute version
       id: version
       env:
+        EVENT_NAME: ${{ github.event_name }}
         INPUT_RELEASE_TAG: ${{ inputs.release_tag }}
-      run: |
-        BASE_VERSION_CODE=746
-        BASE_VERSION_NAME="2.3.5"
-        # run_number resets when the workflow file is recreated and stays the same on
-        # re-runs, so never trust it alone: the highest N already released as
-        # v<BASE>.N-plus is the floor. Versions therefore never go backwards and a
-        # re-run of an already released run gets a fresh tag instead of a collision.
-        LAST_N=$(git tag --list "v${BASE_VERSION_NAME}.*-plus" \
-          | sed -nE "s/^v${BASE_VERSION_NAME//./\\.}\.([0-9]+)-plus$/\1/p" \
-          | sort -n | tail -1)
-        LAST_N=${LAST_N:-0}
-        N=$GITHUB_RUN_NUMBER
-        if [ $((LAST_N + 1)) -gt "$N" ]; then
-          N=$((LAST_N + 1))
-          echo "run_number=$GITHUB_RUN_NUMBER is not ahead of the last released N=$LAST_N; using N=$N"
-        fi
-        VERSION_CODE=$((BASE_VERSION_CODE + N))
-        if [ -n "$INPUT_RELEASE_TAG" ]; then
-          RELEASE_TAG="$INPUT_RELEASE_TAG"
-          VERSION_NAME="${RELEASE_TAG#v}"
-        else
-          VERSION_NAME="${BASE_VERSION_NAME}.${N}-plus"
-          RELEASE_TAG="v${VERSION_NAME}"
-        fi
-        echo "version_code=$VERSION_CODE" >> "$GITHUB_OUTPUT"
-        echo "version_name=$VERSION_NAME" >> "$GITHUB_OUTPUT"
-        echo "release_tag=$RELEASE_TAG" >> "$GITHUB_OUTPUT"
-        echo "Building versionName=$VERSION_NAME versionCode=$VERSION_CODE tag=$RELEASE_TAG"
+        COMMIT_SHA: ${{ github.sha }}
+      run: bash .github/scripts/compute-version.sh
 
     - name: Setup Android SDK
       uses: android-actions/setup-android@v4
