@@ -69,10 +69,14 @@ else
   fi
 fi
 
-OUT="${GITHUB_OUTPUT:-/dev/stdout}"
-{
+emit() {
   echo "version_code=$VERSION_CODE"
   echo "version_name=$VERSION_NAME"
   echo "release_tag=$RELEASE_TAG"
-} >> "$OUT"
+}
+if [ -n "${GITHUB_OUTPUT:-}" ]; then
+  emit >> "$GITHUB_OUTPUT"
+else
+  emit
+fi
 echo "Computed versionName=$VERSION_NAME versionCode=$VERSION_CODE tag=${RELEASE_TAG:-<none: PR build>}" >&2
