@@ -156,6 +156,19 @@ object CoreServiceManager {
         } ?: LogUtil.w(AppConfig.TAG, "StartCore-Manager: Core did not stop within ${STOP_WAIT_TIMEOUT_MS}ms")
     }
 
+    /**
+     * Publish a fresh dynamic SOCKS port for the run that is about to start.
+     *
+     * Must happen in the daemon process (that is where the core config is generated) and
+     * before anything reads the port for this run — the hev-tun config and the VPN "append
+     * HTTP proxy" option are both built before the core loop starts. Never while a core is
+     * running: that would move the port out from under it.
+     */
+    fun refreshRuntimeSocksPort() {
+        if (isRunning()) return
+        SettingsManager.refreshRuntimeSocksPort()
+    }
+
     @Throws(Exception::class)
     private fun doStartCoreLoop(service: Service, vpnInterface: ParcelFileDescriptor?) {
         val mFilter = IntentFilter(AppConfig.BROADCAST_ACTION_SERVICE)

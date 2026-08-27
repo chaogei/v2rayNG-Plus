@@ -68,6 +68,14 @@ object AppConfig {
     const val PREF_SOCKS_PORT = "pref_socks_port"
     const val PREF_HTTP_PORT = "pref_http_port"
     const val PREF_DYNAMIC_SOCKS_PORT = "pref_dynamic_socks_port"
+
+    /**
+     * Port the dynamic-SOCKS-port option last generated. Not user facing: it is the single
+     * source of truth shared by the UI process and the `:RunSoLibV2RayDaemon` daemon, which
+     * would otherwise each hold their own in-memory value and disagree about the port the
+     * core is actually listening on.
+     */
+    const val PREF_RUNTIME_SOCKS_PORT = "pref_runtime_socks_port"
     const val PREF_LOCAL_AUTH_ENABLED = "pref_local_auth_enabled"
     const val PREF_SOCKS_USERNAME = "pref_socks_username"
     const val PREF_SOCKS_PASSWORD = "pref_socks_password"

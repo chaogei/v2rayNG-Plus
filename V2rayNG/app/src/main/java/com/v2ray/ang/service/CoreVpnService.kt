@@ -87,6 +87,9 @@ class CoreVpnService : VpnService(), ServiceControl {
             return START_NOT_STICKY
         }
         LogUtil.i(AppConfig.TAG, "StartCore-VPN: Service command received, systemVpnStart=$isSystemVpnStart")
+        // Before setupVpnService(): the hev-tun config and the appended HTTP proxy are both
+        // built from the local inbound ports there.
+        CoreServiceManager.refreshRuntimeSocksPort()
         if (!setupVpnService()) {
             unlockStart()
             // Stop service if setup fails to avoid infinite restart loops (START_STICKY)

@@ -38,6 +38,8 @@ class CoreProxyOnlyService : Service(), ServiceControl {
             return START_STICKY
         }
 
+        CoreServiceManager.refreshRuntimeSocksPort()
+
         if (!CoreServiceManager.startCoreLoop(null)) {
             LogUtil.e(AppConfig.TAG, "StartCore-Proxy: Failed to start core loop")
             stopSelf()

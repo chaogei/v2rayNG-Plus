@@ -93,8 +93,6 @@ object LauncherManager {
             error(context.getString(R.string.toast_config_file_invalid))
         }
 
-        SettingsManager.refreshRuntimeSocksPort()
-
         if (config.insecure == true && config.pinnedCA256.isNullOrEmpty()) {
             context.toastError(R.string.toast_allow_insecure_deprecated)
             Utils.setClipboard(context, context.getString(R.string.toast_allow_insecure_deprecated))

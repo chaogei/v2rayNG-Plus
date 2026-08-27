@@ -36,9 +36,6 @@ import kotlin.random.Random
 
 object SettingsManager {
 
-    @Volatile
-    private var runtimeSocksPort: Int? = null
-
     fun initApp(context: Context) {
         ensureDefaultSettings()
         //ensureDefaultSubscription()
@@ -279,25 +276,41 @@ object SettingsManager {
 
     /**
      * Get the SOCKS port.
+     *
+     * With the dynamic port option on, the port is read from MMKV rather than from a
+     * process-local field: the services run in `:RunSoLibV2RayDaemon` while the UI runs in
+     * the default process, and everything the app itself sends through the local proxy
+     * (subscription update, geo download, update check) is resolved in the UI process.
      * @return The SOCKS port.
      */
     fun getSocksPort(): Int {
         val port =
-            if (IsDynamicSocksPort()) {
-                runtimeSocksPort ?: refreshRuntimeSocksPort()
+            if (isDynamicSocksPort()) {
+                readRuntimeSocksPort() ?: refreshRuntimeSocksPort()
             } else {
                 Utils.parseInt(MmkvManager.decodeSettingsString(AppConfig.PREF_SOCKS_PORT), AppConfig.PORT_SOCKS.toInt())
             }
         return port ?: AppConfig.PORT_SOCKS.toInt()
     }
 
+    /**
+     * Generate the next dynamic SOCKS port and publish it to MMKV.
+     *
+     * Only the daemon process may call this, right before it generates the core config —
+     * refreshing it anywhere else hands the UI process a port nothing listens on.
+     */
     @Synchronized
     fun refreshRuntimeSocksPort(): Int? {
-        if (IsDynamicSocksPort()) {
-            runtimeSocksPort = generateRandomSocksPort()
-            return runtimeSocksPort
+        if (!isDynamicSocksPort()) {
+            return null
         }
-        return null
+        val port = generateRandomSocksPort()
+        MmkvManager.encodeSettings(AppConfig.PREF_RUNTIME_SOCKS_PORT, port)
+        return port
+    }
+
+    private fun readRuntimeSocksPort(): Int? {
+        return MmkvManager.decodeSettingsInt(AppConfig.PREF_RUNTIME_SOCKS_PORT, 0).takeIf { it in 1..65535 }
     }
 
     /**
@@ -397,7 +410,7 @@ object SettingsManager {
         return Utils.parseInt(MmkvManager.decodeSettingsString(AppConfig.PREF_LOCAL_REDIR_PORT), AppConfig.PORT_REDIR.toInt())
     }
 
-    private fun IsDynamicSocksPort(): Boolean {
+    private fun isDynamicSocksPort(): Boolean {
         return MmkvManager.decodeSettingsBool(AppConfig.PREF_DYNAMIC_SOCKS_PORT, false)
     }
 
