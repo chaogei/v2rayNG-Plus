@@ -64,6 +64,26 @@ curl -x socks5h://user:pass@<IP>:10808 https://www.gstatic.com/generate_204 -v
 
 ---
 
+## 自动发版（GitHub Actions）
+
+每次推送到 `master`，CI（`.github/workflows/build.yml`）都会自动编译并**发布一个 GitHub Release**（fdroid + playstore 两个 flavor 的 release 包，全 ABI split + universal）。应用内「检查更新」读取的就是本仓库的 Releases（`https://api.github.com/repos/chaogei/v2rayNG-Plus/releases`）。
+
+- **版本算法**（不回写仓库，杜绝「发版 commit 又触发发版」死循环）：
+  - `versionCode = 746 + run_number`（746 为仓库内基线）
+  - `versionName = 2.3.5.<run_number>-plus`，Release tag 为 `v<versionName>`（如 `v2.3.6.12-plus` 风格的 `v2.3.5.12-plus`）
+  - 应用内 `VersionUtil` 比较版本时会丢掉 `-`/`+` 后缀，所以由第 4 位数字段保证「新版本 > 已装版本」
+  - 版本号通过 `-PversionCode` / `-PversionName` 注入 Gradle（`app/build.gradle.kts` 读 project property，本地构建仍用仓库里的默认值）
+- **触发规则**：`push` 到 `master` → 构建 + 发 Release；PR → 只构建 arm64 artifact，不发 Release；`workflow_dispatch` → 手动发版，可用 `release_tag` 输入指定 tag（如 `v2.4.0-plus`）
+- **需要的 GitHub secrets**（仓库 Settings → Secrets and variables → Actions）：
+  | Secret | 作用 | 缺失时 |
+  | --- | --- | --- |
+  | `APP_KEYSTORE_BASE64` | release keystore 的 base64 | 改用仓库内 `V2rayNG/debug.keystore` 签名，Release 标记为 prerelease，正文注明「debug 签名，不能覆盖正式包」 |
+  | `APP_KEYSTORE_PASSWORD` / `APP_KEYSTORE_ALIAS` / `APP_KEY_PASSWORD` | keystore 口令 / 别名 / key 口令 | 同上（四个 secrets 必须齐全才算配置了正式签名） |
+  | `GPG_PRIVATE_KEY` | 给 APK 附加 `.sig` 签名 | 跳过 GPG 步骤，不影响发版 |
+- **Release 附件命名**与应用内更新器匹配：`v2rayNG_<versionName>-fdroid_<abi>.apk`（fdroid flavor）与 `v2rayNG_<versionName>_<abi>.apk`（playstore flavor）。
+
+---
+
 ## 本地编译
 
 完整工程可用 Android Studio（Ladybug+）或命令行编译，步骤与上游 CI（`.github/workflows/build.yml`）一致：

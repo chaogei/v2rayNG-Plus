@@ -5,16 +5,25 @@ plugins {
     id("com.jaredsburrows.license")
 }
 
+// CI overrides the app version per release without committing a bump back to the
+// repository (which would retrigger the release workflow):
+//   ./gradlew assembleRelease -PversionCode=750 -PversionName=2.3.5.4-plus
+// Local builds keep the committed defaults below.
+val ciVersionCode = (project.findProperty("versionCode") as? String)?.toIntOrNull()
+val ciVersionName = (project.findProperty("versionName") as? String)?.takeIf { it.isNotBlank() }
+
 android {
     namespace = "com.v2ray.ang"
+    // CI passes -PndkVersion=<x> instead of patching this file by line number.
+    (project.findProperty("ndkVersion") as? String)?.takeIf { it.isNotBlank() }?.let { ndkVersion = it }
     compileSdk = 37
 
     defaultConfig {
         applicationId = "com.v2ray.ang"
         minSdk = 24
         targetSdk = 37
-        versionCode = 746
-        versionName = "2.3.5-plus"
+        versionCode = ciVersionCode ?: 746
+        versionName = ciVersionName ?: "2.3.5-plus"
 
         val abiFilterList = (properties["ABI_FILTERS"] as? String)?.split(';')
         splits {
