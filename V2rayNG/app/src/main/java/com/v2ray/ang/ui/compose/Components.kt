@@ -5,6 +5,7 @@ import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
@@ -12,6 +13,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
@@ -44,6 +46,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -52,6 +55,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -170,10 +174,9 @@ fun AppListItem(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 4.dp)
-            .glassPanel(fill = MaterialTheme.colorScheme.surfaceContainerLowest)
+            .glassCard(fill = MaterialTheme.colorScheme.surfaceContainerLowest)
             .clickable { onCheckedChange(!checked) }
-            .padding(horizontal = 16.dp, vertical = 12.dp),
+            .padding(horizontal = GlassSpacing.cardInner, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         val model = remember(icon, packageName) {
@@ -230,6 +233,49 @@ fun ItemDivider() {
 fun AppDivider(modifier: Modifier = Modifier) {
     val color = if (LocalDarkTheme.current) dividerColorDark else dividerColorLight
     HorizontalDivider(modifier = modifier.fillMaxWidth(), thickness = 1.dp, color = color)
+}
+
+/**
+ * Centered empty-state placeholder: a dimmed icon with a title and optional
+ * hint, used when a list has no content (servers, subscriptions, search).
+ */
+@Composable
+fun EmptyState(
+    icon: Painter,
+    title: String,
+    modifier: Modifier = Modifier,
+    hint: String? = null
+) {
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(horizontal = 32.dp, vertical = 48.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Icon(
+            painter = icon,
+            contentDescription = null,
+            modifier = Modifier.size(56.dp),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.55f)
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center
+        )
+        if (hint != null) {
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = hint,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+                textAlign = TextAlign.Center
+            )
+        }
+    }
 }
 
 @Composable
@@ -301,8 +347,7 @@ fun ReorderableListItem(
                 .then(
                     if (glass) {
                         Modifier
-                            .padding(horizontal = 10.dp, vertical = 4.dp)
-                            .glassPanel(fill = MaterialTheme.colorScheme.surfaceContainerLow)
+                            .glassCard()
                             .padding(vertical = 8.dp)
                     } else {
                         Modifier

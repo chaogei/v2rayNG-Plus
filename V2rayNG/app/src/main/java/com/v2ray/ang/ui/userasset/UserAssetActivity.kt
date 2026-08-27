@@ -56,6 +56,7 @@ import com.v2ray.ang.ui.compose.AppDropdownMenuItems
 import com.v2ray.ang.ui.compose.AppTopBar
 import com.v2ray.ang.ui.compose.DeleteConfirmDialog
 import com.v2ray.ang.ui.compose.GlassListCard
+import com.v2ray.ang.ui.compose.PreferenceGroupHeader
 import com.v2ray.ang.ui.compose.SettingsListItem
 import com.v2ray.ang.ui.compose.NavigationBarsBottomPadding
 import com.v2ray.ang.ui.compose.glassBorder
@@ -317,11 +318,9 @@ internal fun UserAssetScreen(
                 )
             }
             item {
-                Text(
-                    text = stringResource(R.string.title_user_asset_setting),
-                    style = MaterialTheme.typography.bodyLarge,
-                    modifier = Modifier.padding(16.dp)
-                )
+                // Same header treatment as the settings screens so the section
+                // label visibly owns the asset cards below it.
+                PreferenceGroupHeader(title = stringResource(R.string.title_user_asset_setting))
             }
             itemsIndexed(items = uiState.assets, key = { _, item -> item.guid }) { _, item ->
                 GlassListCard(modifier = Modifier.fillMaxWidth()) {
@@ -371,14 +370,10 @@ private fun UserAssetItem(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(8.dp),
+            .padding(horizontal = 16.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Column(
-            modifier = Modifier
-                .weight(1f)
-                .padding(8.dp)
-        ) {
+        Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = item.assetUrl.remarks,
                 style = MaterialTheme.typography.bodyLarge,

@@ -2,6 +2,8 @@ package com.v2ray.ang.ui.compose
 
 import android.os.Build
 import android.view.WindowManager
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -15,6 +17,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Shapes
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
@@ -47,6 +50,24 @@ val GlassShapes = Shapes(
     large = RoundedCornerShape(20.dp),
     extraLarge = RoundedCornerShape(24.dp),
 )
+
+/** Duration for theme/day-night color transitions (restrained, no heavy motion). */
+const val GlassThemeTransitionMs = 220
+
+/**
+ * Spacing tokens on a 4dp grid, shared by every glass card and screen so
+ * list rhythm stays identical across the app (no stray 10/13/14dp values).
+ */
+object GlassSpacing {
+    /** Horizontal gutter between a card and the screen edge. */
+    val cardGutter = 12.dp
+
+    /** Vertical gap between stacked cards (4dp each side = 8dp between). */
+    val cardGap = 4.dp
+
+    /** Horizontal padding of content inside a card. */
+    val cardInner = 16.dp
+}
 
 /**
  * Turn an opaque Material color scheme into its glass variant: the window
@@ -134,6 +155,20 @@ fun Modifier.glassPanel(
     .border(1.dp, borderBrush, shape)
 
 /**
+ * The standard list-card recipe: token gutter/gap around a frosted panel.
+ * All list rows (servers, settings, subscriptions, assets, apps) share this
+ * so cards line up column-perfect across screens.
+ */
+@Composable
+fun Modifier.glassCard(
+    fill: Color = MaterialTheme.colorScheme.surfaceContainerLow,
+    borderBrush: Brush = glassBorderBrush(),
+    shape: Shape = GlassShapes.medium,
+): Modifier = this
+    .padding(horizontal = GlassSpacing.cardGutter, vertical = GlassSpacing.cardGap)
+    .glassPanel(shape = shape, fill = fill, borderBrush = borderBrush)
+
+/**
  * Full-window gradient backdrop drawn once behind all content: a soft
  * two-tone base with three large color glows, giving the "blurred wallpaper"
  * depth that the frosted panels float on. Plain gradients are already smooth,
@@ -148,11 +183,28 @@ fun AppGlassBackground(
     modifier: Modifier = Modifier,
 ) {
     val dark = LocalDarkTheme.current
-    val baseStart = if (dark) Color(0xFF12161F) else Color(0xFFF3F6FD)
-    val baseEnd = if (dark) Color(0xFF191522) else Color(0xFFFDF5EE)
-    val glowFirst = glow.first.copy(alpha = if (dark) 0.20f else 0.14f)
-    val glowSecond = glow.second.copy(alpha = if (dark) 0.14f else 0.10f)
-    val glowThird = glow.third.copy(alpha = if (dark) 0.16f else 0.10f)
+    // Short color tweens make switching theme preset or day/night a smooth
+    // cross-fade of the backdrop instead of a hard cut, with no white flash.
+    val baseStart by animateColorAsState(
+        if (dark) Color(0xFF12161F) else Color(0xFFF3F6FD),
+        animationSpec = tween(GlassThemeTransitionMs), label = "glassBaseStart"
+    )
+    val baseEnd by animateColorAsState(
+        if (dark) Color(0xFF191522) else Color(0xFFFDF5EE),
+        animationSpec = tween(GlassThemeTransitionMs), label = "glassBaseEnd"
+    )
+    val glowFirst by animateColorAsState(
+        glow.first.copy(alpha = if (dark) 0.20f else 0.14f),
+        animationSpec = tween(GlassThemeTransitionMs), label = "glassGlow1"
+    )
+    val glowSecond by animateColorAsState(
+        glow.second.copy(alpha = if (dark) 0.14f else 0.10f),
+        animationSpec = tween(GlassThemeTransitionMs), label = "glassGlow2"
+    )
+    val glowThird by animateColorAsState(
+        glow.third.copy(alpha = if (dark) 0.16f else 0.10f),
+        animationSpec = tween(GlassThemeTransitionMs), label = "glassGlow3"
+    )
 
     Box(
         modifier = modifier
@@ -195,11 +247,7 @@ fun GlassListCard(
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit
 ) {
-    Box(
-        modifier = modifier
-            .padding(horizontal = 10.dp, vertical = 4.dp)
-            .glassPanel(fill = MaterialTheme.colorScheme.surfaceContainerLow)
-    ) {
+    Box(modifier = modifier.glassCard()) {
         content()
     }
 }

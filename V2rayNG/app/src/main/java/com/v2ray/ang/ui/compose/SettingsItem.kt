@@ -1,5 +1,7 @@
 package com.v2ray.ang.ui.compose
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -21,6 +23,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.painter.Painter
@@ -30,6 +33,10 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import com.v2ray.ang.R
 
+// Group headers start at cardGutter + 8dp so the label reads as owning the
+// cards below it (indented just inside the card edge, aligned across screens).
+private val GroupHeaderStartPadding = GlassSpacing.cardGutter + 8.dp
+
 @Composable
 fun PreferenceGroupHeader(title: String, modifier: Modifier = Modifier) {
     Text(
@@ -38,7 +45,7 @@ fun PreferenceGroupHeader(title: String, modifier: Modifier = Modifier) {
         color = MaterialTheme.colorScheme.secondary,
         modifier = modifier
             .fillMaxWidth()
-            .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 8.dp)
+            .padding(start = GroupHeaderStartPadding, end = 16.dp, top = 16.dp, bottom = 8.dp)
     )
 }
 
@@ -49,11 +56,25 @@ fun CollapsiblePreferenceGroupHeader(
     onExpandedChange: (Boolean) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    // The chevron rotates smoothly and the ripple is clipped to a rounded
+    // shape so the header feels like a control, not a bare text row.
+    val chevronRotation by animateFloatAsState(
+        targetValue = if (expanded) 180f else 0f,
+        animationSpec = tween(200),
+        label = "groupChevron"
+    )
     Row(
         modifier = modifier
             .fillMaxWidth()
+            .padding(horizontal = GlassSpacing.cardGap * 2)
+            .clip(GlassShapes.small)
             .clickable { onExpandedChange(!expanded) }
-            .padding(horizontal = 16.dp, vertical = 12.dp),
+            .padding(
+                start = GroupHeaderStartPadding - GlassSpacing.cardGap * 2,
+                end = 8.dp,
+                top = 12.dp,
+                bottom = 12.dp
+            ),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
@@ -68,7 +89,7 @@ fun CollapsiblePreferenceGroupHeader(
             tint = MaterialTheme.colorScheme.secondary,
             modifier = Modifier
                 .size(24.dp)
-                .rotate(if (expanded) 180f else 0f)
+                .rotate(chevronRotation)
         )
     }
 }
@@ -93,10 +114,9 @@ private fun SettingsItemRow(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 12.dp, vertical = 3.dp)
-            .glassPanel(fill = MaterialTheme.colorScheme.surfaceContainerLowest)
+            .glassCard(fill = MaterialTheme.colorScheme.surfaceContainerLowest)
             .then(if (onClick != null) Modifier.clickable(enabled = enabled, onClick = onClick) else Modifier)
-            .padding(16.dp),
+            .padding(GlassSpacing.cardInner),
         verticalAlignment = Alignment.CenterVertically
     ) {
         if (icon != null) {
@@ -123,7 +143,11 @@ private fun SettingsItemRow(
                 )
             }
         }
-        trailing?.invoke()
+        if (trailing != null) {
+            // Keep long titles/summaries from running into the trailing control.
+            Spacer(modifier = Modifier.width(12.dp))
+            trailing()
+        }
     }
 }
 

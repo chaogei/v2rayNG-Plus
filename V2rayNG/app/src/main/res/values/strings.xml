@@ -330,6 +330,11 @@
     <string name="theme_preset_sakura">Sakura Pink</string>
     <string name="theme_preset_graphite">Graphite Purple</string>
     <string name="theme_preset_silver">Silver Gray</string>
+    <string name="empty_server_list">No profiles yet</string>
+    <string name="empty_server_list_hint">Tap + in the top bar to add or import servers</string>
+    <string name="empty_search_result">No matching profiles</string>
+    <string name="empty_sub_list">No subscriptions yet</string>
+    <string name="empty_sub_list_hint">Tap + in the top bar to add a subscription group</string>
     <string name="title_pref_use_hev_tunnel">Use Hev TUN</string>
     <string name="summary_pref_use_hev_tunnel">When enabled, TUN will use hev-socks5-tunnel; otherwise, it will use xray-core.</string>
     <string name="title_pref_hev_tunnel_loglevel">Hev TUN log level</string>

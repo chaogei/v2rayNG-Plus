@@ -33,7 +33,8 @@ fun GroupTabBar(
         modifier = modifier.fillMaxWidth(),
         containerColor = MaterialTheme.colorScheme.surface,
         contentColor = MaterialTheme.colorScheme.onSurface,
-        edgePadding = 16.dp,
+        // Aligns the first tab with the 12dp card gutter used by the list below.
+        edgePadding = 12.dp,
         minTabWidth = 56.dp,
         indicator = {
             TabRowDefaults.PrimaryIndicator(

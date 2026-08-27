@@ -1,7 +1,13 @@
 package com.v2ray.ang.ui.main
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -25,6 +31,7 @@ import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -36,7 +43,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.compositeOver
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.stateDescription
@@ -55,12 +65,13 @@ import com.v2ray.ang.extension.isComplexType
 import com.v2ray.ang.extension.nullIfBlank
 import com.v2ray.ang.handler.AngConfigManager
 import com.v2ray.ang.handler.MmkvManager
+import com.v2ray.ang.ui.compose.EmptyState
 import com.v2ray.ang.ui.compose.ReorderableGridItem
 import com.v2ray.ang.ui.compose.ReorderableListItem
 import com.v2ray.ang.ui.compose.colorPing
 import com.v2ray.ang.ui.compose.colorPingRed
 import com.v2ray.ang.ui.compose.glassBorderBrush
-import com.v2ray.ang.ui.compose.glassPanel
+import com.v2ray.ang.ui.compose.glassCard
 import com.v2ray.ang.ui.compose.verticalScrollbar
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyGridState
@@ -92,6 +103,7 @@ fun GroupPagerPage(
     val canReorder = groupId.isNotEmpty() && searchQuery.isEmpty()
     ServerListPage(
         servers = servers,
+        isSearching = searchQuery.isNotEmpty(),
         selectedGuid = selectedGuid,
         locateTarget = locateTarget?.takeIf { it.groupId == groupId },
         canReorder = canReorder,
@@ -115,6 +127,7 @@ fun GroupPagerPage(
 @Composable
 private fun ServerListPage(
     servers: List<ServersCache>,
+    isSearching: Boolean,
     selectedGuid: String?,
     locateTarget: LocateTarget?,
     canReorder: Boolean,
@@ -133,6 +146,18 @@ private fun ServerListPage(
     onMoveServer: (Int, Int) -> Unit,
     contentPadding: PaddingValues
 ) {
+    if (servers.isEmpty()) {
+        EmptyState(
+            icon = painterResource(
+                if (isSearching) R.drawable.ic_search_24dp else R.drawable.ic_description_24dp
+            ),
+            title = stringResource(
+                if (isSearching) R.string.empty_search_result else R.string.empty_server_list
+            ),
+            hint = if (isSearching) null else stringResource(R.string.empty_server_list_hint)
+        )
+        return
+    }
     if (doubleColumnDisplay) {
         val gridState = remember(groupId) {
             lazyGridStates.getOrPut(groupId) { LazyGridState() }
@@ -288,8 +313,12 @@ private fun ServerItemRow(
         MmkvManager.decodeSubscription(profile.subscriptionId)?.remarks?.firstOrNull()
             ?.toString() ?: ""
     } else ""
+    val interactionSource = remember { MutableInteractionSource() }
 
-    GlassServerCard(isSelected = serverCache.guid == selectedGuid) {
+    GlassServerCard(
+        isSelected = serverCache.guid == selectedGuid,
+        interactionSource = interactionSource
+    ) {
         ServerListItem(
             remarks = profile.remarks,
             statistics = profile.description.nullIfBlank()
@@ -303,30 +332,52 @@ private fun ServerItemRow(
             onShare = { onShareServer(serverCache.guid, profile) },
             onEdit = { onEditServer(serverCache.guid, profile) },
             onRemove = { onRemoveServer(serverCache.guid) },
-            onMore = { onMoreServer(serverCache.guid, profile) }
+            onMore = { onMoreServer(serverCache.guid, profile) },
+            interactionSource = interactionSource
         )
     }
 }
 
 /**
- * Frosted card wrapper for a server entry. The selected server additionally
- * gets an accent-tinted border so it stands out beyond the small indicator.
+ * Frosted card wrapper for a server entry. Selection animates in an
+ * accent-tinted border plus a faint accent wash; pressing gives a subtle
+ * scale-down so taps feel connected to the card.
  */
 @Composable
 private fun GlassServerCard(
     isSelected: Boolean,
+    interactionSource: MutableInteractionSource,
     content: @Composable () -> Unit
 ) {
-    val borderBrush = if (isSelected) {
-        SolidColor(MaterialTheme.colorScheme.secondary.copy(alpha = 0.55f))
-    } else {
-        glassBorderBrush()
-    }
+    val accent = MaterialTheme.colorScheme.secondary
+    val baseFill = MaterialTheme.colorScheme.surfaceContainerLow
+    val borderColor by animateColorAsState(
+        targetValue = if (isSelected) accent.copy(alpha = 0.55f) else Color.Transparent,
+        animationSpec = tween(180),
+        label = "serverCardBorder"
+    )
+    val fill by animateColorAsState(
+        targetValue = if (isSelected) accent.copy(alpha = 0.08f).compositeOver(baseFill) else baseFill,
+        animationSpec = tween(180),
+        label = "serverCardFill"
+    )
+    val pressed by interactionSource.collectIsPressedAsState()
+    val pressScale by animateFloatAsState(
+        targetValue = if (pressed) 0.985f else 1f,
+        animationSpec = tween(120),
+        label = "serverCardPress"
+    )
+    // When not selected the plain hairline shows; the animated accent border
+    // fades in on top of it (transparent -> accent) without a brush swap.
+    val borderBrush = if (borderColor.alpha > 0.01f) SolidColor(borderColor) else glassBorderBrush()
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 10.dp, vertical = 4.dp)
-            .glassPanel(fill = MaterialTheme.colorScheme.surfaceContainerLow, borderBrush = borderBrush)
+            .graphicsLayer {
+                scaleX = pressScale
+                scaleY = pressScale
+            }
+            .glassCard(fill = fill, borderBrush = borderBrush)
     ) {
         content()
     }
@@ -348,7 +399,11 @@ private fun ServerItemColumn(
     val subRemarks = if (subscriptionId.isEmpty()) {
         MmkvManager.decodeSubscription(profile.subscriptionId)?.remarks?.firstOrNull()?.toString() ?: ""
     } else ""
-    GlassServerCard(isSelected = serverCache.guid == selectedGuid) {
+    val interactionSource = remember { MutableInteractionSource() }
+    GlassServerCard(
+        isSelected = serverCache.guid == selectedGuid,
+        interactionSource = interactionSource
+    ) {
         ServerListItem(
             remarks = profile.remarks,
             statistics = profile.description.nullIfBlank() ?: AngConfigManager.generateDescription(profile),
@@ -361,7 +416,8 @@ private fun ServerItemColumn(
             onEdit = { onEditServer(serverCache.guid, profile) },
             onShare = { onShareServer(serverCache.guid, profile) },
             onRemove = { onRemoveServer(serverCache.guid) },
-            onMore = { onMoreServer(serverCache.guid, profile) }
+            onMore = { onMoreServer(serverCache.guid, profile) },
+            interactionSource = interactionSource
         )
     }
 }
@@ -381,7 +437,8 @@ fun ServerListItem(
     onRemove: () -> Unit,
     onMore: () -> Unit,
     modifier: Modifier = Modifier,
-    dragModifier: Modifier = Modifier
+    dragModifier: Modifier = Modifier,
+    interactionSource: MutableInteractionSource? = null
 ) {
     val testResult = if (testDelayMillis == 0L) {
         ""
@@ -402,7 +459,11 @@ fun ServerListItem(
                     stateDescription = selectedStateDescription
                 }
             }
-            .clickable(onClick = onClick)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = LocalIndication.current,
+                onClick = onClick
+            )
             .then(dragModifier)
     ) {
         Box(
@@ -418,6 +479,7 @@ fun ServerListItem(
                             .width(4.dp)
                             .fillMaxHeight()
                             .padding(vertical = 10.dp)
+                            .clip(RoundedCornerShape(2.dp))
                             .background(MaterialTheme.colorScheme.primary)
                     )
                 }
@@ -431,34 +493,36 @@ fun ServerListItem(
         ) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Text(remarks, Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge.copy(lineBreak = LineBreak.Paragraph), maxLines = 2, overflow = TextOverflow.Ellipsis)
+                // Default IconButton sizing keeps the 48dp minimum touch target
+                // (40dp visual container) instead of the cramped 36dp buttons.
                 if (doubleColumnDisplay) {
-                    IconButton(onClick = onMore, Modifier.size(36.dp)) {
+                    IconButton(onClick = onMore) {
                         Icon(
                             painterResource(R.drawable.ic_more_vert_24dp),
                             stringResource(R.string.acc_more),
-                            Modifier.size(24.dp)
+                            Modifier.size(22.dp)
                         )
                     }
                 } else {
-                    IconButton(onClick = onShare, Modifier.size(36.dp)) {
+                    IconButton(onClick = onShare) {
                         Icon(
                             painterResource(R.drawable.ic_share_24dp),
                             stringResource(R.string.title_configuration_share),
-                            Modifier.size(24.dp)
+                            Modifier.size(22.dp)
                         )
                     }
-                    IconButton(onClick = onEdit, Modifier.size(36.dp)) {
+                    IconButton(onClick = onEdit) {
                         Icon(
                             painterResource(R.drawable.ic_edit_24dp),
                             stringResource(R.string.acc_edit),
-                            Modifier.size(24.dp)
+                            Modifier.size(22.dp)
                         )
                     }
-                    IconButton(onClick = onRemove, Modifier.size(36.dp)) {
+                    IconButton(onClick = onRemove) {
                         Icon(
                             painterResource(R.drawable.ic_delete_24dp),
                             stringResource(R.string.acc_delete),
-                            Modifier.size(24.dp)
+                            Modifier.size(22.dp)
                         )
                     }
                 }
@@ -474,13 +538,21 @@ fun ServerListItem(
                     ) {
                         Text(subscriptionRemarks.take(1).uppercase(), fontSize = 11.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
                     }
+                    Spacer(modifier = Modifier.width(6.dp))
                 }
                 Text(statistics, Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
             Spacer(modifier = Modifier.height(6.dp))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Text(typeDescription, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.secondary, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Text(testResult, style = MaterialTheme.typography.bodySmall, color = if (testDelayMillis < 0L) colorPingRed else colorPing, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(
+                    testResult,
+                    // Tabular figures keep latency digits column-aligned across cards.
+                    style = MaterialTheme.typography.bodySmall.copy(fontFeatureSettings = "tnum"),
+                    color = if (testDelayMillis < 0L) colorPingRed else colorPing,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
             }
         }
     }

@@ -330,6 +330,11 @@
     <string name="theme_preset_sakura">樱花粉</string>
     <string name="theme_preset_graphite">石墨紫</string>
     <string name="theme_preset_silver">冷灰银</string>
+    <string name="empty_server_list">还没有节点</string>
+    <string name="empty_server_list_hint">点右上角 + 添加或导入服务器</string>
+    <string name="empty_search_result">没有匹配的节点</string>
+    <string name="empty_sub_list">还没有订阅</string>
+    <string name="empty_sub_list_hint">点右上角 + 添加订阅分组</string>
     <string name="title_pref_use_hev_tunnel">启用 Hev TUN 功能</string>
     <string name="summary_pref_use_hev_tunnel">选择启用后 TUN 将使用 hev-socks5-tunnel 否则使用 xray-core</string>
     <string name="title_pref_hev_tunnel_loglevel">Hev TUN 日志级别</string>

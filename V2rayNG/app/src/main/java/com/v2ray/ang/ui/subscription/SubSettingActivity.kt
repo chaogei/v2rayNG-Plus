@@ -47,6 +47,7 @@ import com.v2ray.ang.ui.compose.AppTopBar
 import com.v2ray.ang.ui.compose.DeleteConfirmDialog
 import com.v2ray.ang.ui.compose.GlassAlertDialog
 import com.v2ray.ang.ui.compose.QRCodeDialog
+import com.v2ray.ang.ui.compose.EmptyState
 import com.v2ray.ang.ui.compose.ReorderableListItem
 import com.v2ray.ang.ui.compose.SelectListDialog
 import com.v2ray.ang.ui.compose.SettingsSwitchItem
@@ -143,6 +144,15 @@ fun SubSettingScreen(
             )
         }
     ) { innerPadding ->
+        if (subscriptions.isEmpty()) {
+            EmptyState(
+                icon = painterResource(R.drawable.ic_subscriptions_24dp),
+                title = stringResource(R.string.empty_sub_list),
+                hint = stringResource(R.string.empty_sub_list_hint),
+                modifier = Modifier.padding(innerPadding)
+            )
+            return@Scaffold
+        }
         LazyColumn(
             state = lazyListState,
             modifier = Modifier
@@ -164,7 +174,7 @@ fun SubSettingScreen(
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 14.dp),
+                                .padding(horizontal = 16.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
@@ -231,7 +241,7 @@ fun SubSettingScreen(
                                         updated.enabled = checked
                                         viewModel.update(subCache.guid, updated)
                                     },
-                                    modifier = Modifier.scale(0.7f),
+                                    modifier = Modifier.scale(0.8f),
                                     colors = SwitchDefaults.colors(
                                         checkedThumbColor = MaterialTheme.colorScheme.onSecondary,
                                         checkedTrackColor = MaterialTheme.colorScheme.secondary

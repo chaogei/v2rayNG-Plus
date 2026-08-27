@@ -111,7 +111,9 @@ fun MainDrawerContent(drawerState: DrawerState, onNavigate: (MainDestination) ->
                 }
             }
             drawerItems.forEachIndexed { index, item ->
-                if (index == primaryDrawerItems.size) AppDivider()
+                if (index == primaryDrawerItems.size) {
+                    AppDivider(modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp))
+                }
                 NavigationDrawerItem(
                     label = { Text(stringResource(item.labelRes)) },
                     selected = false,

@@ -1,5 +1,8 @@
 package com.v2ray.ang.ui.main
 
+import android.os.SystemClock
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -20,6 +23,10 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
@@ -66,17 +73,31 @@ fun MainBottomBar(
                 )
             }
         }
+        // Short color tween makes start/stop feel like a state change rather
+        // than a hard repaint; the debounce swallows accidental double-taps so
+        // repeated connect/disconnect requests can't race the service.
+        val fabColor by animateColorAsState(
+            targetValue = if (isRunning) MaterialTheme.colorScheme.secondary
+            else if (isDarkTheme) colorFabInactiveDark
+            else colorFabInactiveLight,
+            animationSpec = tween(200),
+            label = "fabColor"
+        )
+        var lastToggleAt by remember { mutableLongStateOf(0L) }
         FloatingActionButton(
-            onClick = { onAction(MainAction.ToggleService) },
+            onClick = {
+                val now = SystemClock.elapsedRealtime()
+                if (now - lastToggleAt >= 600L) {
+                    lastToggleAt = now
+                    onAction(MainAction.ToggleService)
+                }
+            },
             modifier = Modifier
                 .align(Alignment.TopEnd)
                 .padding(end = 24.dp)
                 .offset(y = (-28).dp)
                 .navigationBarsPadding(),
-            // Running state uses the theme accent so preset switching recolors the FAB.
-            containerColor = if (isRunning) MaterialTheme.colorScheme.secondary
-            else if (isDarkTheme) colorFabInactiveDark
-            else colorFabInactiveLight
+            containerColor = fabColor
         ) {
             Icon(
                 painter = if (isRunning) painterResource(R.drawable.ic_stop_24dp)

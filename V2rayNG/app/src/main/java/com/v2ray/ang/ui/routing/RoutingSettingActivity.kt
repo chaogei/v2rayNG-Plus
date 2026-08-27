@@ -386,7 +386,7 @@ private fun RoutingRulesetItem(
             Switch(
                 checked = ruleset.enabled ?: false,
                 onCheckedChange = onEnabledChange,
-                modifier = Modifier.scale(0.7f),
+                modifier = Modifier.scale(0.8f),
                 colors = SwitchDefaults.colors(
                     checkedThumbColor = MaterialTheme.colorScheme.onSecondary,
                     checkedTrackColor = MaterialTheme.colorScheme.secondary
