@@ -7,13 +7,11 @@ import com.google.gson.JsonObject
 import com.v2ray.ang.AppConfig
 import com.v2ray.ang.dto.ConfigResult
 import com.v2ray.ang.dto.CoreConfigContext
-import com.v2ray.ang.dto.LocalInboundSnapshot
 import com.v2ray.ang.dto.V2rayConfig
 import com.v2ray.ang.dto.entities.ProfileItem
 import com.v2ray.ang.dto.entities.RulesetItem
 import com.v2ray.ang.enums.BalancerStrategyType
 import com.v2ray.ang.enums.CoreResolvedType
-import com.v2ray.ang.enums.LocalInboundMode
 import com.v2ray.ang.extension.isNotNullEmpty
 import com.v2ray.ang.handler.MmkvManager
 import com.v2ray.ang.handler.SettingsManager
@@ -117,7 +115,20 @@ object CoreConfigManager {
             json.remove("policy")
         }
 
-        if (!needTun()) {
+        val inboundFlags = currentInboundFlags()
+        val tunTemplate = if (inboundFlags.needTun) {
+            initV2rayConfig(configContext).inbounds.firstOrNull { it.tag == "tun" }
+        } else {
+            null
+        }
+        LocalInboundConfigurator.applyToCustomJson(
+            json = json,
+            snapshot = SettingsManager.getLocalInboundSnapshot(),
+            flags = inboundFlags,
+            tunTemplate = tunTemplate,
+        )
+
+        if (!inboundFlags.needTun) {
             return JsonUtil.toJsonPretty(json)?.let { ConfigResult(true, configContext.guid, it) } ?: result
         }
 
@@ -136,24 +147,6 @@ object CoreConfigManager {
                 val uids = PackageUidResolver.packageNamesToUids(context, packages).takeIf { it.isNotEmpty() } ?: continue
 
                 rule.add("process", JsonArray().apply { uids.forEach { add(it) } })
-            }
-        }
-
-        // check if tun inbound exists
-        val inboundsJson = json.get("inbounds")?.takeIf { it.isJsonArray }?.asJsonArray
-            ?: JsonArray().also { json.add("inbounds", it) }
-        val tunNotExists = inboundsJson.none { elem ->
-            elem.isJsonObject && elem.asJsonObject.get("protocol")
-                ?.takeIf { it.isJsonPrimitive && it.asJsonPrimitive.isString }
-                ?.asString == "tun"
-        }
-
-        if (tunNotExists) {
-            // add tun inbound from template
-            val templateConfig = initV2rayConfig(configContext)
-            templateConfig.inbounds.firstOrNull { it.tag == "tun" }?.let { inboundTun ->
-                inboundTun.settings?.mtu = SettingsManager.getVpnMtu()
-                inboundsJson.add(JsonUtil.parseString(JsonUtil.toJson(inboundTun)))
             }
         }
 
@@ -531,155 +524,27 @@ object CoreConfigManager {
      * An optional dokodemo-door inbound (transparent redirect) can be enabled
      * on top of any mode.
      */
-    private fun configureInbounds(v2rayConfig: V2rayConfig) {
-        val vpn = SettingsManager.isVpnMode()
-        val useHev = SettingsManager.isUsingHevTun()
-        val forcedByHev = vpn && useHev
-        val forcedBySocksRoot = SettingsManager.isRootMode()
-                || MmkvManager.decodeSettingsBool(AppConfig.PREF_ROOT_LAN_SHARING)
-
-        val enableLocalProxy = forcedByHev || forcedBySocksRoot || MmkvManager.decodeSettingsBool(AppConfig.PREF_ENABLE_LOCAL_PROXY, true)
-
-        // One immutable snapshot: every inbound preference is read from MMKV
-        // exactly once and the port/auth layout is derived in a single place.
-        val inbound = SettingsManager.getLocalInboundSnapshot()
-        val authAccounts = if (inbound.authEnabled && inbound.username != null && inbound.password != null) {
-            listOf(
-                V2rayConfig.InboundBean.InSettingsBean.SocksAccountBean(
-                    user = inbound.username,
-                    pass = inbound.password
-                )
-            )
-        } else {
-            null
-        }
-
-        val inboundSocks = v2rayConfig.inbounds[0]
-        val socksSettings = inboundSocks.settings
-            ?: V2rayConfig.InboundBean.InSettingsBean().also { inboundSocks.settings = it }
-
-        // In HTTP-only mode the SOCKS inbound exists solely as the hev-tun / root
-        // tunnel target, and both of those connect over loopback. Honoring the
-        // 0.0.0.0 listen address here would publish a SOCKS proxy the user asked
-        // not to have (and on Xray that inbound also answers HTTP).
-        val socksIsInternalOnly = inbound.mode == LocalInboundMode.HTTP
-        inboundSocks.listen = if (socksIsInternalOnly) AppConfig.LOOPBACK else inbound.listenAddress
-        inboundSocks.port = inbound.socksPort
-        socksSettings.udp = inbound.socksUdpEnabled
-        // On Xray the same credentials also protect HTTP requests hitting the
-        // socks inbound (mixed behavior).
-        socksSettings.auth = if (authAccounts != null) "password" else "noauth"
-        socksSettings.accounts = authAccounts
-
-        val fakedns = MmkvManager.decodeSettingsBool(AppConfig.PREF_FAKE_DNS_ENABLED) == true
-        val sniffAllTlsAndHttp =
-            MmkvManager.decodeSettingsBool(AppConfig.PREF_SNIFFING_ENABLED, true) != false
-        inboundSocks.sniffing?.enabled = fakedns || sniffAllTlsAndHttp
-        inboundSocks.sniffing?.routeOnly =
-            MmkvManager.decodeSettingsBool(AppConfig.PREF_ROUTE_ONLY_ENABLED, false)
-        if (!sniffAllTlsAndHttp) {
-            inboundSocks.sniffing?.destOverride?.clear()
-        }
-        if (fakedns) {
-            inboundSocks.sniffing?.destOverride?.add("fakedns")
-        }
-
-        // The SOCKS inbound is kept whenever the mode includes SOCKS, and is
-        // forced in VPN (hev-tun) and root modes where it is the tunnel target.
-        val socksRequired = forcedByHev || forcedBySocksRoot || inbound.mode != LocalInboundMode.HTTP
-        val httpRequired = when (inbound.mode) {
-            // Xray's socks inbound natively accepts HTTP, no extra inbound needed.
-            LocalInboundMode.MIXED -> !Utils.isXray()
-            LocalInboundMode.SOCKS_HTTP, LocalInboundMode.HTTP -> true
-            LocalInboundMode.SOCKS -> false
-        }
-
-        if (httpRequired) {
-            // Constructed directly instead of the previous Gson serialize/parse
-            // round-trip clone of the socks inbound: same JSON output, no
-            // reflection or intermediate string on the connect hot path.
-            // The snapshot already resolves HTTP/SOCKS port collisions, so this
-            // stays consistent with SettingsManager.getHttpPort().
-            val httpPort = if (inbound.mode == LocalInboundMode.MIXED) {
-                LocalInboundSnapshot.neighborPort(inbound.socksPort)
-            } else {
-                inbound.httpInboundPort
-            }
-            v2rayConfig.inbounds.add(
-                V2rayConfig.InboundBean(
-                    tag = AppConfig.TAG_HTTP_INBOUND,
-                    port = httpPort,
-                    protocol = AppConfig.PROTOCOL_HTTP,
-                    listen = inbound.listenAddress,
-                    settings = V2rayConfig.InboundBean.InSettingsBean(
-                        userLevel = socksSettings.userLevel,
-                        // HTTP basic auth uses the same credentials as SOCKS.
-                        accounts = authAccounts
-                    ),
-                    sniffing = copySniffing(inboundSocks.sniffing)
-                )
-            )
-        }
-
-        if (!socksRequired) {
-            v2rayConfig.inbounds.removeIf { it.protocol == AppConfig.PROTOCOL_SOCKS }
-        }
-
-        // Optional transparent redirect inbound (dokodemo-door). Traffic must be
-        // redirected to this port externally (e.g. iptables REDIRECT), which
-        // usually requires root.
-        if (enableLocalProxy && inbound.redirEnabled) {
-            val redirPort = inbound.redirPort
-            // Skipping the inbound silently used to leave the toggle looking enabled while
-            // nothing listened on the port, with the only trace in logcat. Fail the start
-            // instead so the reason reaches the user.
-            if (v2rayConfig.inbounds.any { it.port == redirPort }) {
-                error("Transparent redirect port $redirPort conflicts with another local inbound port")
-            }
-            v2rayConfig.inbounds.add(
-                V2rayConfig.InboundBean(
-                    tag = AppConfig.TAG_REDIR_INBOUND,
-                    port = redirPort,
-                    protocol = AppConfig.PROTOCOL_DOKODEMO,
-                    // dokodemo-door has no account mechanism, so the local auth credentials
-                    // cannot protect it. Binding it to 0.0.0.0 along with the other inbounds
-                    // would publish an unauthenticated inbound on the LAN; the redirect it
-                    // serves is installed locally (iptables REDIRECT) and reaches it here.
-                    listen = AppConfig.LOOPBACK,
-                    settings = V2rayConfig.InboundBean.InSettingsBean(
-                        network = "tcp,udp",
-                        followRedirect = true,
-                        userLevel = socksSettings.userLevel
-                    ),
-                    sniffing = copySniffing(inboundSocks.sniffing)
-                )
-            )
-        }
-
-        if (!enableLocalProxy) {
-            v2rayConfig.inbounds.removeIf { it.protocol == AppConfig.PROTOCOL_SOCKS || it.protocol == AppConfig.PROTOCOL_HTTP }
-        }
-
-        if (needTun()) {
-            val inboundTun = v2rayConfig.inbounds.firstOrNull { e -> e.tag == "tun" }
-            inboundTun?.settings?.mtu = SettingsManager.getVpnMtu()
-            inboundTun?.sniffing = inboundSocks.sniffing
-        }
+    private fun currentInboundFlags(): LocalInboundConfigurator.InboundRuntimeFlags {
+        return LocalInboundConfigurator.InboundRuntimeFlags(
+            vpn = SettingsManager.isVpnMode(),
+            useHev = SettingsManager.isUsingHevTun(),
+            rootMode = SettingsManager.isRootMode(),
+            rootLanSharing = MmkvManager.decodeSettingsBool(AppConfig.PREF_ROOT_LAN_SHARING),
+            enableLocalProxyPref = MmkvManager.decodeSettingsBool(AppConfig.PREF_ENABLE_LOCAL_PROXY, true),
+            isXray = Utils.isXray(),
+            fakeDns = MmkvManager.decodeSettingsBool(AppConfig.PREF_FAKE_DNS_ENABLED) == true,
+            sniffAllTlsAndHttp = MmkvManager.decodeSettingsBool(AppConfig.PREF_SNIFFING_ENABLED, true) != false,
+            routeOnly = MmkvManager.decodeSettingsBool(AppConfig.PREF_ROUTE_ONLY_ENABLED, false),
+            vpnMtu = SettingsManager.getVpnMtu(),
+        )
     }
 
-    /**
-     * Deep-copy a sniffing block without the Gson serialize/parse round-trip
-     * previously used for cloning.
-     */
-    private fun copySniffing(source: V2rayConfig.InboundBean.SniffingBean?): V2rayConfig.InboundBean.SniffingBean? {
-        return source?.let {
-            V2rayConfig.InboundBean.SniffingBean(
-                enabled = it.enabled,
-                destOverride = ArrayList(it.destOverride),
-                metadataOnly = it.metadataOnly,
-                routeOnly = it.routeOnly
-            )
-        }
+    private fun configureInbounds(v2rayConfig: V2rayConfig) {
+        LocalInboundConfigurator.applyToConfig(
+            v2rayConfig = v2rayConfig,
+            snapshot = SettingsManager.getLocalInboundSnapshot(),
+            flags = currentInboundFlags(),
+        )
     }
 
     /**

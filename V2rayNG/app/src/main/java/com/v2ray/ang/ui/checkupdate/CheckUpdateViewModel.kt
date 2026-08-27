@@ -2,6 +2,7 @@ package com.v2ray.ang.ui.checkupdate
 
 import android.app.Application
 import com.v2ray.ang.AppConfig
+import com.v2ray.ang.BuildConfig
 import com.v2ray.ang.R
 import com.v2ray.ang.dto.CheckUpdateResult
 import com.v2ray.ang.handler.MmkvManager
@@ -39,7 +40,14 @@ class CheckUpdateViewModel(application: Application) : BaseViewModel(application
                     _updateResult.value = result
                     _showUpdateDialog.value = true
                 } else {
-                    toastSuccess(R.string.update_already_latest_version)
+                    // Name the fork and the installed version so "latest" is
+                    // unambiguously about this repository, not the official app.
+                    toastSuccess(
+                        getString(
+                            R.string.update_already_latest_version_fork,
+                            "${AppConfig.APP_FORK_NAME} v${BuildConfig.VERSION_NAME}"
+                        )
+                    )
                 }
             } catch (e: Exception) {
                 LogUtil.e(AppConfig.TAG, "Failed to check for updates", e)

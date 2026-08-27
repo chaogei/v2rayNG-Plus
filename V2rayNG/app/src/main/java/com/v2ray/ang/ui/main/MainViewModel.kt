@@ -103,8 +103,12 @@ class MainViewModel(
                 updateRunningState(true)
             }
 
-            MainServiceEvent.StateStartFailure -> {
-                toastError(R.string.toast_services_failure)
+            is MainServiceEvent.StateStartFailure -> {
+                // Surface the daemon's reason (port collision, invalid config, ...)
+                // instead of only the generic failure line.
+                val base = dataSource.getString(R.string.toast_services_failure)
+                val detail = event.detail?.takeIf { it.isNotBlank() }
+                toastError(if (detail != null) "$base\n$detail" else base)
                 updateRunningState(false)
             }
 

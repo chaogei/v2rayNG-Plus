@@ -95,12 +95,24 @@ object LauncherManager {
             }
         }
 
-        if (MmkvManager.decodeSettingsBool(AppConfig.PREF_PROXY_SHARING)) {
-            context.toast(R.string.toast_warning_pref_proxysharing_short)
-        } else if (directOnly) {
-            context.toast(R.string.title_local_proxy_direct)
+        // consumeDirectSwitchNotice covers the mode switch that already happened when
+        // the user picked "local proxy / direct" from a menu moments before this start.
+        val switchedToProxyOnly = if (directOnly) {
+            SettingsManager.switchVpnToProxyOnlyForDirectStart() or
+                SettingsManager.consumeDirectSwitchNotice()
         } else {
-            context.toast(R.string.toast_services_start)
+            false
+        }
+
+        val startupMessages = StartupToastPolicy.startMessages(
+            proxySharing = MmkvManager.decodeSettingsBool(AppConfig.PREF_PROXY_SHARING),
+            directOnly = directOnly,
+            switchedToProxyOnly = switchedToProxyOnly,
+        )
+        if (startupMessages.isNotEmpty()) {
+            // One combined toast: the snackbar host replaces (not queues) messages, so
+            // separate toasts here would leave only the last one visible.
+            context.toast(startupMessages.joinToString("\n") { context.getString(it) })
         }
 
         val isRootMode = SettingsManager.isRootMode()

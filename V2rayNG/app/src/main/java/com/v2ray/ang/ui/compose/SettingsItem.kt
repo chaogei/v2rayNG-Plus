@@ -223,12 +223,16 @@ fun SettingsListItem(
     selectedValue: String,
     onSelected: (String) -> Unit,
     modifier: Modifier = Modifier,
-    enabled: Boolean = true
+    enabled: Boolean = true,
+    extraSummary: String? = null,
 ) {
     var showDialog by remember { mutableStateOf(false) }
     val options = entries.zip(values)
     val selectedOption = options.find { it.second == selectedValue } ?: options.firstOrNull()
-    val summary = selectedOption?.first.orEmpty()
+    val summary = listOfNotNull(
+        selectedOption?.first?.takeIf { it.isNotEmpty() },
+        extraSummary?.takeIf { it.isNotEmpty() },
+    ).joinToString("\n")
 
     SettingsItemRow(
         icon = icon,

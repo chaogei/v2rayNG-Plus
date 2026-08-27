@@ -257,6 +257,41 @@
     <string name="title_pref_socks_password">Mật khẩu proxy cục bộ (Không bắt buộc)</string>
     <string name="summary_pref_socks_password">Mật khẩu</string>
 
+    <string name="title_pref_local_inbound_mode">Giao thức inbound cục bộ</string>
+    <string-array name="local_inbound_mode_entries">
+        <item>Mixed (SOCKS + HTTP, một cổng)</item>
+        <item>SOCKS + HTTP (hai cổng)</item>
+        <item>Chỉ SOCKS</item>
+        <item>Chỉ HTTP</item>
+    </string-array>
+    <string name="title_pref_local_listen_address">Địa chỉ lắng nghe cục bộ</string>
+    <string-array name="local_listen_address_entries">
+        <item>127.0.0.1 (chỉ thiết bị này)</item>
+        <item>0.0.0.0 (mọi giao diện, truy cập được từ LAN)</item>
+    </string-array>
+    <string name="title_pref_http_port">Cổng HTTP cục bộ</string>
+    <string name="title_pref_local_auth_enabled">Xác thực proxy cục bộ</string>
+    <string name="summary_pref_local_auth_enabled">Yêu cầu tên người dùng/mật khẩu trên inbound SOCKS và HTTP (mật khẩu SOCKS và HTTP Basic). Inbound trong suốt dokodemo-door không có tài khoản nên chỉ lắng nghe 127.0.0.1</string>
+    <string name="summary_pref_local_auth_incomplete">Chưa có hiệu lực: cần điền cả tên người dùng và mật khẩu bên dưới, nếu không inbound cục bộ vẫn không xác thực</string>
+    <string name="title_pref_local_redir_enabled">Inbound proxy trong suốt (dokodemo-door)</string>
+    <string name="summary_pref_local_redir_enabled">Mở thêm inbound chuyển hướng trên 127.0.0.1. Lưu lượng phải được chuyển tới cổng này từ bên ngoài (ví dụ iptables REDIRECT), thường cần root</string>
+    <string name="summary_pref_local_redir_conflict">Chưa có hiệu lực: cổng bên dưới trùng inbound cục bộ khác nên cấu hình sẽ bị từ chối</string>
+    <string name="title_pref_local_redir_port">Cổng proxy trong suốt</string>
+    <string name="toast_invalid_local_port">Cổng không hợp lệ: dùng số từ 1 đến 65535</string>
+    <string name="toast_local_port_conflict">Cổng trùng với inbound cục bộ khác</string>
+    <string name="toast_local_auth_credentials_missing">Cần đặt cả tên người dùng và mật khẩu, nếu không xác thực cục bộ sẽ không bật</string>
+    <string name="toast_http_port_normalized">Cổng HTTP trùng cổng SOCKS và đã đổi thành %1$d</string>
+    <string name="summary_pref_local_inbound_custom">Các cổng này cũng áp dụng cho hồ sơ CUSTOM: ứng dụng tiêm inbound SOCKS/HTTP/redir cục bộ và giữ nguyên phần JSON còn lại</string>
+    <string name="summary_pref_mode_local_direct">Proxy cục bộ · trực tiếp cộng VPN sẽ tạo tun toàn hệ thống chỉ đưa lưu lượng ra trực tiếp. Khi khởi động chế độ đó, ứng dụng chuyển sang Chỉ proxy để chỉ mở cổng cục bộ</string>
+    <string name="toast_local_direct_switched_to_proxy">Proxy cục bộ · trực tiếp đã chạy ở chế độ Chỉ proxy (không bật VPN hệ thống)</string>
+    <string name="dialog_vpn_while_direct_title">Chuyển sang chế độ VPN?</string>
+    <string name="dialog_vpn_while_direct_message">Đang dùng «Proxy cục bộ · trực tiếp». VPN cộng với outbound trực tiếp sẽ đưa toàn bộ lưu lượng thiết bị ra ngoài qua tun hệ thống, nên lần khởi động trực tiếp tiếp theo sẽ tự chuyển về «Chỉ proxy». Vẫn chuyển sang VPN?</string>
+    <string name="summary_pref_local_inbound_custom_selected">Hồ sơ đang chọn là cấu hình CUSTOM: các inbound SOCKS/HTTP/redir cục bộ này sẽ được tiêm vào JSON của nó, phần còn lại giữ nguyên</string>
+    <string name="update_source_notice">Nguồn cập nhật: %1$s (%2$s), bản fork của 2dust/v2rayNG — không phải gói chính thức</string>
+    <string name="update_already_latest_version_fork">%1$s đã là phiên bản mới nhất</string>
+    <string name="empty_server_list_direct_hint">Nhấn + trên thanh trên để thêm hoặc nhập máy chủ, hoặc khởi động không cần máy chủ: các cổng proxy cục bộ vẫn hoạt động với outbound trực tiếp (freedom)</string>
+    <string name="action_start_local_proxy_direct">Khởi động proxy cục bộ · trực tiếp</string>
+
     <string name="title_pref_local_dns_port">Cổng DNS cục bộ</string>
     <string name="summary_pref_local_dns_port">Cổng DNS cục bộ</string>
 
@@ -300,6 +335,19 @@
     <string name="title_ui_settings">Cài đặt UI</string>
     <string name="title_pref_ui_mode_night">Cài đặt chế độ UI</string>
     <string name="title_pref_dynamic_color">Bật màu động</string>
+    <string name="title_pref_theme_preset">Màu chủ đề</string>
+    <string name="theme_preset_amber">Hổ phách (mặc định)</string>
+    <string name="theme_preset_midnight">Xanh đêm</string>
+    <string name="theme_preset_aurora">Xanh cực quang</string>
+    <string name="theme_preset_sakura">Hồng sakura</string>
+    <string name="theme_preset_graphite">Tím graphite</string>
+    <string name="theme_preset_silver">Xám bạc</string>
+    <string name="empty_server_list">Chưa có hồ sơ</string>
+    <string name="empty_server_list_hint">Nhấn + trên thanh trên để thêm hoặc nhập máy chủ</string>
+    <string name="empty_search_result">Không có hồ sơ khớp</string>
+    <string name="empty_sub_list">Chưa có đăng ký</string>
+    <string name="empty_sub_list_hint">Nhấn + trên thanh trên để thêm nhóm đăng ký</string>
+    <string name="title_local_proxy_direct">Proxy cục bộ · trực tiếp</string>
     <string name="summary_pref_dynamic_color">Chỉ hoạt động trên Android 12+</string>
     <string name="title_pref_use_hev_tunnel">Dùng Hev TUN</string>
     <string name="summary_pref_use_hev_tunnel">Khi bật, TUN sẽ dùng hev-socks5-tunnel; nếu không, TUN sẽ dùng xray-core.</string>
@@ -394,6 +442,8 @@
     <string name="connection_test_error_status_code">Mã lỗi: #%d</string>
     <string name="connection_connected">Đã kết nối.\nNhấn để kiểm tra kết nối.</string>
     <string name="connection_not_connected">Chưa kết nối</string>
+    <string name="connection_connected_local_proxy_direct">Proxy cục bộ · trực tiếp. Nhấn để kiểm tra kết nối.</string>
+    <string name="connection_not_connected_local_proxy_direct">Chưa kết nối · proxy cục bộ (trực tiếp)</string>
     <string name="connection_running_task_left">Số lượt kiểm tra đang chạy: %s</string>
 
     <string name="import_subscription_success">Nhập gói đăng ký thành công!</string>

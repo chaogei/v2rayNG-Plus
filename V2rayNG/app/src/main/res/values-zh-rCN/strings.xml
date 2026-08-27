@@ -281,6 +281,16 @@
     <string name="toast_local_port_conflict">端口与其他本地入站端口冲突</string>
     <string name="toast_local_auth_credentials_missing">需同时设置用户名和密码，否则本地认证不会生效</string>
     <string name="toast_http_port_normalized">HTTP 端口与 SOCKS 端口相同，已改为 %1$d</string>
+    <string name="summary_pref_local_inbound_custom">这些端口对 CUSTOM 自定义配置同样生效：应用会注入本地 SOCKS/HTTP/redir 入站，其余 JSON 保持不变</string>
+    <string name="summary_pref_mode_local_direct">「本地代理 · 直连」再叠加 VPN，会拉起一条只把流量直连出去的系统 tun。启动直连时会改成「仅代理」，只开放本地端口</string>
+    <string name="toast_local_direct_switched_to_proxy">已按「仅代理」启动本地代理 · 直连（未拉起系统 VPN）</string>
+    <string name="dialog_vpn_while_direct_title">切换到 VPN 模式？</string>
+    <string name="dialog_vpn_while_direct_message">当前是「本地代理 · 直连」。VPN 叠加直连出站会让整机流量经系统 tun 直接出去，因此下次启动直连时会自动改回「仅代理」。仍要切换到 VPN 吗？</string>
+    <string name="summary_pref_local_inbound_custom_selected">当前选中的是 CUSTOM 自定义配置：应用会把这些本地 SOCKS/HTTP/redir 入站注入其 JSON，其余内容保持不变</string>
+    <string name="update_source_notice">更新来源：%1$s（%2$s），2dust/v2rayNG 的 fork —— 不是官方包</string>
+    <string name="update_already_latest_version_fork">%1$s 已是最新版本</string>
+    <string name="empty_server_list_direct_hint">点右上角 + 添加或导入服务器；也可以不加节点直接启动：本地代理端口照常监听，出站为直连（freedom）</string>
+    <string name="action_start_local_proxy_direct">启动本地代理 · 直连</string>
 
     <string name="title_pref_local_dns_port">本地 DNS 端口</string>
     <string name="summary_pref_local_dns_port">本地 DNS 端口</string>

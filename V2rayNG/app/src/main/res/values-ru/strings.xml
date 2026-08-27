@@ -257,6 +257,41 @@
     <string name="title_pref_socks_password">Пароль локального прокси (необязательно)</string>
     <string name="summary_pref_socks_password">Пароль</string>
 
+    <string name="title_pref_local_inbound_mode">Протокол локального входящего</string>
+    <string-array name="local_inbound_mode_entries">
+        <item>Mixed (SOCKS + HTTP, один порт)</item>
+        <item>SOCKS + HTTP (два порта)</item>
+        <item>Только SOCKS</item>
+        <item>Только HTTP</item>
+    </string-array>
+    <string name="title_pref_local_listen_address">Адрес прослушивания</string>
+    <string-array name="local_listen_address_entries">
+        <item>127.0.0.1 (только это устройство)</item>
+        <item>0.0.0.0 (все интерфейсы, доступ из LAN)</item>
+    </string-array>
+    <string name="title_pref_http_port">Локальный HTTP-порт</string>
+    <string name="title_pref_local_auth_enabled">Аутентификация локального прокси</string>
+    <string name="summary_pref_local_auth_enabled">Требовать имя и пароль на SOCKS и HTTP (пароль SOCKS и HTTP Basic). Прозрачный входящий dokodemo-door не поддерживает учётные записи и поэтому слушает только 127.0.0.1</string>
+    <string name="summary_pref_local_auth_incomplete">Не действует: укажите и имя, и пароль ниже, иначе локальные входящие останутся без аутентификации</string>
+    <string name="title_pref_local_redir_enabled">Прозрачный входящий (dokodemo-door)</string>
+    <string name="summary_pref_local_redir_enabled">Дополнительный прозрачный входящий на 127.0.0.1. Трафик нужно перенаправлять на этот порт внешне (например iptables REDIRECT), обычно нужен root</string>
+    <string name="summary_pref_local_redir_conflict">Не действует: порт ниже совпадает с другим локальным входящим, конфигурация будет отклонена</string>
+    <string name="title_pref_local_redir_port">Порт прозрачного прокси</string>
+    <string name="toast_invalid_local_port">Неверный порт: число от 1 до 65535</string>
+    <string name="toast_local_port_conflict">Порт совпадает с другим локальным входящим</string>
+    <string name="toast_local_auth_credentials_missing">Укажите и имя, и пароль, иначе локальная аутентификация не включится</string>
+    <string name="toast_http_port_normalized">HTTP-порт совпадал с портом SOCKS и изменён на %1$d</string>
+    <string name="summary_pref_local_inbound_custom">Эти порты действуют и для CUSTOM-профилей: приложение внедряет локальные SOCKS/HTTP/redir, остальной JSON не меняется</string>
+    <string name="summary_pref_mode_local_direct">«Локальный прокси · напрямую» вместе с VPN поднял бы системный tun, который только выпускает трафик напрямую. При запуске этого режима приложение переключается на «только прокси» и открывает лишь локальные порты</string>
+    <string name="toast_local_direct_switched_to_proxy">Локальный прокси · напрямую запущен как «только прокси» (без системного VPN)</string>
+    <string name="dialog_vpn_while_direct_title">Переключиться в режим VPN?</string>
+    <string name="dialog_vpn_while_direct_message">Сейчас активен «Локальный прокси · напрямую». VPN с прямым исходящим направил бы весь трафик устройства напрямую через системный tun, поэтому при следующем прямом запуске режим автоматически вернётся к «только прокси». Всё равно переключиться на VPN?</string>
+    <string name="summary_pref_local_inbound_custom_selected">Выбран CUSTOM-профиль: эти локальные SOCKS/HTTP/redir внедряются в его JSON, остальное содержимое не меняется</string>
+    <string name="update_source_notice">Источник обновлений: %1$s (%2$s), форк 2dust/v2rayNG — не официальный пакет</string>
+    <string name="update_already_latest_version_fork">%1$s — уже последняя версия</string>
+    <string name="empty_server_list_direct_hint">Нажмите + вверху, чтобы добавить или импортировать серверы, либо запустите без узла: локальные порты прокси работают с прямым (freedom) исходящим</string>
+    <string name="action_start_local_proxy_direct">Запустить локальный прокси · напрямую</string>
+
     <string name="title_pref_local_dns_port">Порт локального DNS</string>
     <string name="summary_pref_local_dns_port">Порт локального DNS</string>
 
@@ -300,6 +335,19 @@
     <string name="title_ui_settings">Настройки интерфейса</string>
     <string name="title_pref_ui_mode_night">Тема интерфейса</string>
     <string name="title_pref_dynamic_color">Включить динамические цвета</string>
+    <string name="title_pref_theme_preset">Цветовая тема</string>
+    <string name="theme_preset_amber">Янтарный (по умолчанию)</string>
+    <string name="theme_preset_midnight">Полуночный синий</string>
+    <string name="theme_preset_aurora">Зелёное сияние</string>
+    <string name="theme_preset_sakura">Сакура</string>
+    <string name="theme_preset_graphite">Графитовый фиолетовый</string>
+    <string name="theme_preset_silver">Холодный серый</string>
+    <string name="empty_server_list">Профилей пока нет</string>
+    <string name="empty_server_list_hint">Нажмите + вверху, чтобы добавить или импортировать серверы</string>
+    <string name="empty_search_result">Нет подходящих профилей</string>
+    <string name="empty_sub_list">Подписок пока нет</string>
+    <string name="empty_sub_list_hint">Нажмите + вверху, чтобы добавить группу подписки</string>
+    <string name="title_local_proxy_direct">Локальный прокси · напрямую</string>
     <string name="summary_pref_dynamic_color">Работает только на Android 12+</string>
     <string name="title_pref_use_hev_tunnel">Использовать Hev TUN</string>
     <string name="summary_pref_use_hev_tunnel">Если включено, TUN будет использовать hev-socks5-tunnel; иначе будет использован xray-core</string>
@@ -394,6 +442,8 @@
     <string name="connection_test_error_status_code">Код ошибки: #%d</string>
     <string name="connection_connected">Подключено.\nНажмите, чтобы проверить соединение.</string>
     <string name="connection_not_connected">Нет соединения</string>
+    <string name="connection_connected_local_proxy_direct">Локальный прокси · напрямую. Нажмите, чтобы проверить соединение.</string>
+    <string name="connection_not_connected_local_proxy_direct">Нет соединения · локальный прокси (напрямую)</string>
     <string name="connection_running_task_left">Выполняется проверок: %s</string>
 
     <string name="import_subscription_success">Подписка импортирована</string>

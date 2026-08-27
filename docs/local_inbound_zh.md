@@ -20,7 +20,7 @@
 | 透明代理入站 | `pref_local_redir_enabled` | 关 |
 | 透明代理端口 | `pref_local_redir_port` | `10810` |
 
-生成逻辑入口：`CoreConfigManager.configureInbounds()`。
+生成逻辑入口：`LocalInboundConfigurator`（`CoreConfigManager.configureInbounds()` 与 CUSTOM JSON 共用）。
 
 ---
 
@@ -213,7 +213,9 @@ iptables -t nat -A OUTPUT -p tcp -j REDIRECT --to-ports 10810
 - `proxy` 标签被指向 `freedom`，而不是伪造一个假的远程节点。因此用户路由规则、DNS 分流规则、`block` 规则、tun / dokodemo 入站的路由都照常生效，只是命中 `proxy` 的流量也直接出去。
 - 指向某个自定义出站标签（其他节点 remarks）的路由规则在这个模式下不会解析成远程出站，会按既有的兜底逻辑落到 `proxy`，也就是直连——直连模式下不会有任何流量意外走到远程节点。
 - 四种本地入站模式、端口、监听地址、认证、「仅 HTTP 时内部 SOCKS 绑回环」、「dokodemo 绑回环」等语义完全不变。
-- VPN / 仅代理 / root 三种运行模式都支持：VPN 模式下 tun 里的流量同样经核心直连出去（可用于只想要 sniffing/路由/分应用规则而不需要远程代理的场景）。
+- 默认不会再用 VPN 去跑直连：启动「本地代理 · 直连」时如果当前是 VPN 模式（非 root），会改成「仅代理」并 toast 说明，避免拉起一条只把流量直连出去的系统 tun。只想要本机 SOCKS/HTTP 口时这才是预期行为。root 模式不受这条规则影响。
+
+- CUSTOM 自定义配置同样吃本地入站设置：生成时会替换其中的 socks/http/redir 入站，其余 JSON（含 tun 和其他自定义入站）保持不变。
 - 状态文案：底栏显示「未连接 · 本地代理（直连）」/「本地代理 · 直连。点击检查连接。」，通知栏标题与快捷设置磁贴显示「本地代理 · 直连」。
 - 不会静默替你选节点：订阅更新不会在没有选中项时自动选中第一个节点；只有手动新增单个节点且当前完全没有选中项时，才沿用上游行为把它设为选中。
 

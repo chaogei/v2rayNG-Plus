@@ -7,7 +7,7 @@ cd V2rayNG
 ./gradlew assembleFdroidDebug    # or assemblePlaystoreDebug
 ```
 
-Kotlin 2.4.0, AGP 9.2.1, Gradle Kotlin DSL. No lint/format/typecheck tasks configured.
+Kotlin 2.4.10, AGP 9.3.1, Gradle Kotlin DSL. Version `2.3.5-plus`. No lint/format/typecheck tasks configured.
 
 ## Test
 
@@ -28,6 +28,8 @@ V2rayNG/
       core/                       # v2ray core integration
         CoreServiceManager.kt      # start/stop core, traffic stats, delay measurement
         CoreConfigManager.kt       # generates JSON config for v2ray core
+        LocalInboundConfigurator.kt # inbound layout (unified + CUSTOM)
+        LocalProxyDirectPolicy.kt  # direct-start switches VPN → proxy-only
         CoreNativeManager.kt       # JNI bridge to libv2ray AAR
         CoreOutboundBuilder.kt     # outbound config construction
         CoreConfigContextBuilder.kt
@@ -81,4 +83,5 @@ V2rayNG/
 - **Flavors**: `fdroid` (suffix `.fdroid`) and `playstore` (no suffix). ABI version codes differ per flavor.
 - **hev-socks5-tunnel**: Optional tun2socks binary. Build with `./compile-hevtun.sh` (requires `NDK_HOME`).
 - **ViewBinding** enabled, no DataBinding.
-- **No CI**, no pre-commit hooks, no lint/format enforcement.
+- **CI / releases**: `.github/workflows/build.yml`. Every push to `master` builds all flavors/ABIs and publishes a GitHub Release automatically; PRs build an arm64 artifact only; `workflow_dispatch` allows a manual release with an optional `release_tag` input. Version is injected via `-PversionCode=746+run_number` / `-PversionName=2.3.5.<run_number>-plus` (no commit written back, so a release can never retrigger itself; `VersionUtil` strips `-plus`, the growing 4th segment keeps versions ordered). Release signing uses the `APP_KEYSTORE_*` secrets when present, otherwise the committed `V2rayNG/debug.keystore` and the Release is marked prerelease. `GPG_PRIVATE_KEY` is optional (skip, never fail). Asset names must keep matching `UpdateCheckerManager.getDownloadUrl`: `v2rayNG_<versionName>-fdroid_<abi>.apk` / `v2rayNG_<versionName>_<abi>.apk`.
+- **Inbound layout**: `core/LocalInboundConfigurator.kt` (pure). Direct-start VPN→proxy-only: `core/LocalProxyDirectPolicy.kt`. Start-toast composition: `core/StartupToastPolicy.kt` (pure, messages joined into one toast because the snackbar host replaces rather than queues).
