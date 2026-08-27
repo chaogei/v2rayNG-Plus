@@ -79,7 +79,7 @@ SOCKS 与 HTTP 分开监听，两个端口都可独立配置：
 }
 ```
 
-若 HTTP 端口被误设为与 SOCKS 端口相同，`SettingsManager.getHttpInboundPort()` 会自动回退为 `SOCKS端口+1`（UI 层也会拦截该冲突）。
+若 HTTP 端口被误设为与 SOCKS 端口相同，`SettingsManager.getLocalInboundSnapshot()` 会把 `httpInboundPort` 回退到相邻端口（一般是 `SOCKS端口+1`，SOCKS 端口为 65535 时改取 65534，避免派生出非法端口）。UI 层在当前模式确实存在独立 HTTP 端口时也会拦截该冲突。
 
 ## 模式三：仅 SOCKS
 
