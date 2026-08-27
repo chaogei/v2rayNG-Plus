@@ -22,8 +22,7 @@ object UpdateCheckerManager {
             AppConfig.APP_API_URL.concatUrl("latest")
         }
 
-        val proxyUsername = SettingsManager.getSocksUsername()
-        val proxyPassword = SettingsManager.getSocksPassword()
+        val (proxyUsername, proxyPassword) = SettingsManager.getLocalAuthCredentials() ?: (null to null)
 
         var response = HttpUtil.getUrlContent(
             UrlContentRequest(
@@ -42,18 +41,19 @@ object UpdateCheckerManager {
                     proxyPassword = proxyPassword
                 )
             )
-                ?: throw IllegalStateException("Failed to get response")
+                ?: throw IllegalStateException("GitHub is unreachable both directly and through the local proxy")
         }
 
+        // A response that does not parse as a release (rate-limit error body, captive
+        // portal page, ...) must fail loudly; reporting "already latest" would be a lie.
         val latestRelease = if (includePreRelease) {
             JsonUtil.fromJsonSafe(response, Array<GitHubRelease>::class.java)
                 ?.firstOrNull()
-                ?: throw IllegalStateException("No pre-release found")
+                ?: throw IllegalStateException("No release found in the GitHub API response")
         } else {
             JsonUtil.fromJsonSafe(response, GitHubRelease::class.java)
-        }
-        if (latestRelease == null) {
-            return@withContext CheckUpdateResult(hasUpdate = false)
+                ?.takeIf { !it.tagName.isNullOrEmpty() }
+                ?: throw IllegalStateException("Unexpected GitHub API response")
         }
 
         val latestVersion = latestRelease.tagName.removePrefix("v")
