@@ -56,8 +56,6 @@ import com.v2ray.ang.ui.compose.AppTopBar
 import com.v2ray.ang.ui.compose.ReorderableListItem
 import com.v2ray.ang.ui.compose.SelectListDialog
 import com.v2ray.ang.ui.compose.SettingsListItem
-import com.v2ray.ang.ui.compose.colorConfigType
-import com.v2ray.ang.ui.compose.colorFabActive
 import com.v2ray.ang.ui.compose.NavigationBarsBottomPadding
 import com.v2ray.ang.ui.compose.glassBorder
 import com.v2ray.ang.ui.compose.glassOverlayColor
@@ -369,7 +367,7 @@ private fun RoutingRulesetItem(
                 Text(
                     text = ruleset.outboundTag,
                     style = MaterialTheme.typography.labelMedium,
-                    color = colorConfigType
+                    color = MaterialTheme.colorScheme.secondary
                 )
             }
         }

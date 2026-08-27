@@ -44,6 +44,7 @@ import com.v2ray.ang.ui.compose.SettingsListItem
 import com.v2ray.ang.ui.compose.SettingsMenuItem
 import com.v2ray.ang.ui.compose.SettingsSwitchItem
 import com.v2ray.ang.ui.compose.ThemeManager
+import com.v2ray.ang.ui.compose.ThemePreset
 import com.v2ray.ang.ui.compose.verticalScrollbar
 import com.v2ray.ang.util.Utils
 
@@ -139,6 +140,7 @@ fun SettingsScreen(
     }
     var uiModeNight by rememberMmkvString(AppConfig.PREF_UI_MODE_NIGHT, "0")
     var dynamicColor by rememberMmkvBool(AppConfig.PREF_DYNAMIC_COLOR, true)
+    var themePreset by rememberMmkvString(AppConfig.PREF_UI_THEME_PRESET, ThemePreset.DEFAULT_ID)
 
     var ipv6Enabled by rememberMmkvBool(AppConfig.PREF_IPV6_ENABLED, false)
     var preferIpv6 by rememberMmkvBool(AppConfig.PREF_PREFER_IPV6, false)
@@ -202,6 +204,8 @@ fun SettingsScreen(
     val localInboundModeValues = stringArrayResource(R.array.local_inbound_mode_value).toList()
     val localListenAddressEntries = stringArrayResource(R.array.local_listen_address_entries).toList()
     val localListenAddressValues = stringArrayResource(R.array.local_listen_address_value).toList()
+    val themePresetEntries = ThemePreset.entries.map { stringResource(it.labelRes) }
+    val themePresetValues = ThemePreset.entries.map { it.id }
 
     Scaffold(
         contentWindowInsets = WindowInsets(0),
@@ -264,6 +268,22 @@ fun SettingsScreen(
                     onCheckedChange = {
                         dynamicColor = it
                         ThemeManager.setDynamicColorEnabled(it)
+                    }
+                )
+                SettingsListItem(
+                    title = stringResource(R.string.title_pref_theme_preset),
+                    entries = themePresetEntries,
+                    values = themePresetValues,
+                    selectedValue = themePreset,
+                    onSelected = {
+                        themePreset = it
+                        ThemeManager.setThemePreset(it)
+                        // Picking a preset overrides Material You so the change
+                        // is visible immediately.
+                        if (dynamicColor) {
+                            dynamicColor = false
+                            ThemeManager.setDynamicColorEnabled(false)
+                        }
                     }
                 )
                 SettingsListItem(

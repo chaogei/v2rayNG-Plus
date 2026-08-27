@@ -138,15 +138,21 @@ fun Modifier.glassPanel(
  * two-tone base with three large color glows, giving the "blurred wallpaper"
  * depth that the frosted panels float on. Plain gradients are already smooth,
  * so no runtime blur is needed and the cost is a single draw pass.
+ *
+ * The neutral base gradient is shared by every theme; only the low-opacity
+ * [glow] brand colors change, so all presets keep the same glass material.
  */
 @Composable
-fun AppGlassBackground(modifier: Modifier = Modifier) {
+fun AppGlassBackground(
+    glow: GlassGlow = ThemePreset.AMBER.glassGlow(),
+    modifier: Modifier = Modifier,
+) {
     val dark = LocalDarkTheme.current
     val baseStart = if (dark) Color(0xFF12161F) else Color(0xFFF3F6FD)
     val baseEnd = if (dark) Color(0xFF191522) else Color(0xFFFDF5EE)
-    val glowOrange = Color(0xFFF97910).copy(alpha = if (dark) 0.20f else 0.14f)
-    val glowTeal = Color(0xFF009966).copy(alpha = if (dark) 0.14f else 0.10f)
-    val glowBlue = Color(0xFF5B7CFA).copy(alpha = if (dark) 0.16f else 0.10f)
+    val glowFirst = glow.first.copy(alpha = if (dark) 0.20f else 0.14f)
+    val glowSecond = glow.second.copy(alpha = if (dark) 0.14f else 0.10f)
+    val glowThird = glow.third.copy(alpha = if (dark) 0.16f else 0.10f)
 
     Box(
         modifier = modifier
@@ -159,9 +165,9 @@ fun AppGlassBackground(modifier: Modifier = Modifier) {
                         end = Offset(size.width, size.height),
                     )
                 )
-                drawGlow(glowOrange, center = Offset(size.width * 0.88f, size.height * 0.08f), radius = size.width * 0.75f)
-                drawGlow(glowTeal, center = Offset(size.width * 0.08f, size.height * 0.42f), radius = size.width * 0.65f)
-                drawGlow(glowBlue, center = Offset(size.width * 0.55f, size.height * 0.95f), radius = size.width * 0.85f)
+                drawGlow(glowFirst, center = Offset(size.width * 0.88f, size.height * 0.08f), radius = size.width * 0.75f)
+                drawGlow(glowSecond, center = Offset(size.width * 0.08f, size.height * 0.42f), radius = size.width * 0.65f)
+                drawGlow(glowThird, center = Offset(size.width * 0.55f, size.height * 0.95f), radius = size.width * 0.85f)
             }
     )
 }

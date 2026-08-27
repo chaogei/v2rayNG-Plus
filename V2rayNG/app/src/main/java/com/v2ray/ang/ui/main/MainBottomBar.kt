@@ -30,7 +30,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.v2ray.ang.R
 import com.v2ray.ang.ui.compose.AppDivider
-import com.v2ray.ang.ui.compose.colorFabActive
 import com.v2ray.ang.ui.compose.colorFabInactiveDark
 import com.v2ray.ang.ui.compose.colorFabInactiveLight
 
@@ -74,7 +73,8 @@ fun MainBottomBar(
                 .padding(end = 24.dp)
                 .offset(y = (-28).dp)
                 .navigationBarsPadding(),
-            containerColor = if (isRunning) colorFabActive
+            // Running state uses the theme accent so preset switching recolors the FAB.
+            containerColor = if (isRunning) MaterialTheme.colorScheme.secondary
             else if (isDarkTheme) colorFabInactiveDark
             else colorFabInactiveLight
         ) {

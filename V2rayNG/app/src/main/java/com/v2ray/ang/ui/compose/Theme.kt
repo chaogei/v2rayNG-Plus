@@ -27,7 +27,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
-private val LightColor = lightColorScheme(
+internal val LightColor = lightColorScheme(
     primary = Color(0xFF000000), // Black
     onPrimary = Color(0xFFFFFFFF), // White
     primaryContainer = Color(0xFFE0E0E0), // Light Gray
@@ -64,7 +64,7 @@ private val LightColor = lightColorScheme(
     surfaceContainerHighest = Color(0xFFE5E5E5), // Light Gray
 )
 
-private val DarkColor = darkColorScheme(
+internal val DarkColor = darkColorScheme(
     primary = Color(0xFFC0C0C0), // Silver Gray
     onPrimary = Color(0xFF303030), // Dark Gray
     primaryContainer = Color(0xFF474747), // Gray
@@ -104,8 +104,6 @@ private val DarkColor = darkColorScheme(
 // Semantic Colors
 val colorPing = Color(0xFF009966) // Green
 val colorPingRed = Color(0xFFFF0099) // Pink Red
-val colorConfigType = Color(0xFFf97910) // Orange
-val colorFabActive = Color(0xFFf97910) // Orange
 val colorFabInactiveLight = Color(0xFF9C9C9C) // Gray
 val colorFabInactiveDark = Color(0xFF646464) // Dark Gray
 val dividerColorLight = Color(0xFFE0E0E0) // Light Gray
@@ -131,6 +129,12 @@ object ThemeManager {
     )
     val dynamicColorEnabled: StateFlow<Boolean> = _dynamicColorEnabled.asStateFlow()
 
+    private val _themePreset = MutableStateFlow(
+        MmkvManager.decodeSettingsString(AppConfig.PREF_UI_THEME_PRESET, ThemePreset.DEFAULT_ID)
+            ?: ThemePreset.DEFAULT_ID
+    )
+    val themePreset: StateFlow<String> = _themePreset.asStateFlow()
+
     fun setThemeMode(mode: String) {
         MmkvManager.encodeSettings(AppConfig.PREF_UI_MODE_NIGHT, mode)
         _themeMode.value = mode
@@ -141,11 +145,19 @@ object ThemeManager {
         _dynamicColorEnabled.value = enabled
     }
 
+    fun setThemePreset(id: String) {
+        MmkvManager.encodeSettings(AppConfig.PREF_UI_THEME_PRESET, id)
+        _themePreset.value = id
+    }
+
     fun refresh() {
         _themeMode.value =
             MmkvManager.decodeSettingsString(AppConfig.PREF_UI_MODE_NIGHT, "0") ?: "0"
         _dynamicColorEnabled.value =
             MmkvManager.decodeSettingsBool(AppConfig.PREF_DYNAMIC_COLOR, true)
+        _themePreset.value =
+            MmkvManager.decodeSettingsString(AppConfig.PREF_UI_THEME_PRESET, ThemePreset.DEFAULT_ID)
+                ?: ThemePreset.DEFAULT_ID
     }
 }
 
@@ -167,17 +179,25 @@ fun AppTheme(
     content: @Composable () -> Unit
 ) {
     val dynamicColor by ThemeManager.dynamicColorEnabled.collectAsState()
+    val presetId by ThemeManager.themePreset.collectAsState()
+    val preset = ThemePreset.fromId(presetId)
     val context = LocalContext.current
-    // The base scheme (static or dynamic) is turned into its translucent
-    // glass variant; the gradient backdrop below shows through every surface.
-    val colorScheme = when {
-        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-        }
-
-        darkTheme -> DarkColor
-        else -> LightColor
-    }.toGlassScheme(darkTheme)
+    // The base scheme (preset or Material You dynamic) is turned into its
+    // translucent glass variant; the gradient backdrop below shows through
+    // every surface. The preset also drives the backdrop glow colors, so
+    // switching themes recolors the glass world without changing its material.
+    val useDynamic = dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
+    val baseScheme = if (useDynamic) {
+        if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
+    } else {
+        preset.colorScheme(darkTheme)
+    }
+    val glow = if (useDynamic) {
+        GlassGlow(baseScheme.primary, baseScheme.tertiary, baseScheme.secondary)
+    } else {
+        preset.glassGlow()
+    }
+    val colorScheme = baseScheme.toGlassScheme(darkTheme)
     val snackbarController = rememberAppSnackbarController()
 
     val view = LocalView.current
@@ -201,7 +221,7 @@ fun AppTheme(
             shapes = GlassShapes
         ) {
             Box(modifier = Modifier.fillMaxSize()) {
-                AppGlassBackground(modifier = Modifier.matchParentSize())
+                AppGlassBackground(glow = glow, modifier = Modifier.matchParentSize())
                 AppSnackbarBridge(controller = snackbarController)
                 content()
                 AppSnackbarHost(hostState = snackbarController.hostState)
