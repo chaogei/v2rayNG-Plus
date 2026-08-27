@@ -45,6 +45,29 @@ object SettingsManager {
         initRoutingRulesets(context)
         migrateServerListToSubscriptions()
         migrateHysteria2PinSHA256()
+        migrateLocalAuthEnabled()
+    }
+
+    /**
+     * Before [AppConfig.PREF_LOCAL_AUTH_ENABLED] existed, credentials alone enabled
+     * authentication on the local inbounds. The new toggle defaults to off, so an
+     * upgrade would silently drop the credentials of everyone who had them set —
+     * turning a shared (0.0.0.0) inbound into an open proxy. Turn the toggle on once
+     * for those installs.
+     */
+    private fun migrateLocalAuthEnabled() {
+        val migrationKey = "local_auth_enabled_migrated"
+        if (MmkvManager.decodeSettingsBool(migrationKey, false)) {
+            return
+        }
+
+        val username = MmkvManager.decodeSettingsString(AppConfig.PREF_SOCKS_USERNAME)?.trim()
+        val password = MmkvManager.decodeSettingsString(AppConfig.PREF_SOCKS_PASSWORD)?.trim()
+        if (!username.isNullOrEmpty() && !password.isNullOrEmpty()) {
+            MmkvManager.encodeSettings(AppConfig.PREF_LOCAL_AUTH_ENABLED, true)
+        }
+
+        MmkvManager.encodeSettings(migrationKey, true)
     }
 
     /**
