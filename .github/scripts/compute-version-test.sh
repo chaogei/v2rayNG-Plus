@@ -68,6 +68,66 @@ case "$PR_NAME" in
     ;;
 esac
 
+# 7. A manual tag outside the v2.3.5.N-plus line does not advance N, so the
+#    next automatic release has to step over the code it consumed. Otherwise
+#    v2.4.0-plus and the following v2.3.5.4-plus both claim 750 and Android
+#    refuses to upgrade between two builds with an equal versionCode.
+TAGS_MANUAL=$'v2.3.5.1-plus\nv2.3.5.2-plus\nv2.3.5.3-plus\nv2.3.5-plus\nv2.4.0-plus'
+expect "release after a manual tag" \
+  $'version_code=751\nversion_name=2.3.5.4-plus\nrelease_tag=v2.3.5.4-plus' \
+  "$(run push "$TAGS_MANUAL" "" deadbeef)"
+expect "PR after a manual tag" \
+  $'version_code=750\nversion_name=2.3.5.3-pr.abc1234-plus\nrelease_tag=' \
+  "$(run pull_request "$TAGS_MANUAL" "" abc1234def5678)"
+expect "second manual tag skips the first one's code" \
+  $'version_code=751\nversion_name=2.5.0-plus\nrelease_tag=v2.5.0-plus' \
+  "$(run workflow_dispatch "$TAGS_MANUAL" "v2.5.0-plus" deadbeef)"
+
+# 8. The baseline tag v2.3.5-plus owns versionCode 746 itself, so it must not
+#    be counted as an extra consumed slot.
+expect "baseline tag is not an extra slot" \
+  $'version_code=747\nversion_name=2.3.5.1-plus\nrelease_tag=v2.3.5.1-plus' \
+  "$(run push $'v2.3.5-plus' "" deadbeef)"
+
+# 9. Tags that do not end in -plus belong to some other numbering and are
+#    ignored entirely.
+expect "foreign tags are ignored" \
+  $'version_code=750\nversion_name=2.3.5.4-plus\nrelease_tag=v2.3.5.4-plus' \
+  "$(run push $'v2.3.5.1-plus\nv2.3.5.2-plus\nv2.3.5.3-plus\nv2.4.0-unrelated\nnightly' "" deadbeef)"
+
+# 10. A manual tag typed without the leading "v" still lands in the namespace
+#     the scan reads, and whitespace around it is ignored.
+expect "manual tag gains the v prefix" \
+  $'version_code=750\nversion_name=2.4.0-plus\nrelease_tag=v2.4.0-plus' \
+  "$(run workflow_dispatch "$TAGS_3" "2.4.0-plus" deadbeef)"
+expect "blank manual tag falls back to the computed one" \
+  $'version_code=750\nversion_name=2.3.5.4-plus\nrelease_tag=v2.3.5.4-plus' \
+  "$(run workflow_dispatch "$TAGS_3" "   " deadbeef)"
+
+# 11. versionCode must never repeat across releases. Replay the whole history
+#     one release at a time and check the codes are strictly increasing.
+CODES=""
+TAGS_SO_FAR=""
+for RELEASE in 1 2 3; do
+  CODE=$(run push "$TAGS_SO_FAR" "" deadbeef | sed -n 's/^version_code=//p')
+  NAME=$(run push "$TAGS_SO_FAR" "" deadbeef | sed -n 's/^version_name=//p')
+  CODES="$CODES $CODE"
+  TAGS_SO_FAR="${TAGS_SO_FAR:+$TAGS_SO_FAR$'\n'}v${NAME}"
+done
+# A manual out-of-line release lands in the middle of the sequence.
+MANUAL_CODE=$(run workflow_dispatch "$TAGS_SO_FAR" "v3.0.0-plus" deadbeef | sed -n 's/^version_code=//p')
+CODES="$CODES $MANUAL_CODE"
+TAGS_SO_FAR="${TAGS_SO_FAR}"$'\n'"v3.0.0-plus"
+CODE=$(run push "$TAGS_SO_FAR" "" deadbeef | sed -n 's/^version_code=//p')
+CODES="$CODES $CODE"
+SORTED=$(printf '%s\n' $CODES | sort -n -u | tr '\n' ' ')
+if [ "$(printf '%s ' $CODES)" = "$SORTED" ]; then
+  echo "ok   versionCode strictly increases across mixed releases ($CODES )"
+else
+  echo "FAIL versionCode sequence: got [$CODES], sorted unique [$SORTED]"
+  FAILURES=$((FAILURES + 1))
+fi
+
 if [ "$FAILURES" -gt 0 ]; then
   echo "$FAILURES check(s) failed" >&2
   exit 1
