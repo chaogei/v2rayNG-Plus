@@ -561,9 +561,7 @@ class MainViewModel(
         val visibleServersOnly =
             uiState.value.selectedGroupId.isNotEmpty() || keywordFilter.isNotBlank()
         return if (visibleServersOnly) {
-            currentServers().sumOf { server ->
-                dataSource.removeInvalidServerByGuid(server.guid)
-            }
+            dataSource.removeInvalidServersAmong(currentServers().map { it.guid })
         } else {
             dataSource.removeInvalidServersInGroup("")
         }

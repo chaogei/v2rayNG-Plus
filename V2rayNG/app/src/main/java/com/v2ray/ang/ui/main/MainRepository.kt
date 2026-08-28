@@ -170,14 +170,14 @@ class MainRepository(
 
     override fun removeAllServer(): Int = MmkvManager.removeAllServer()
 
-    override fun removeInvalidServerByGuid(guid: String): Int =
-        MmkvManager.removeInvalidServer(guid)
+    override fun removeInvalidServersAmong(guids: List<String>): Int =
+        MmkvManager.removeInvalidServers(guids)
 
     override fun removeInvalidServersInGroup(groupId: String): Int =
         if (groupId.isEmpty()) {
             MmkvManager.removeInvalidServer("")
         } else {
-            getServerGuidList(groupId).sumOf(::removeInvalidServerByGuid)
+            MmkvManager.removeInvalidServers(getServerGuidList(groupId))
         }
 
     override fun clearAllTestDelayResults(guids: List<String>) =

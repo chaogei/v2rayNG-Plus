@@ -543,25 +543,33 @@ object MmkvManager {
      * @return The number of server configurations removed.
      */
     fun removeInvalidServer(guid: String): Int {
-        var count = 0
-        if (guid.isNotEmpty()) {
-            decodeServerAffiliationInfo(guid)?.let { aff ->
-                if (aff.testDelayMillis < 0L) {
-                    removeServer(guid)
-                    count++
-                }
-            }
+        val candidates = if (guid.isNotEmpty()) {
+            listOf(guid)
         } else {
-            serverAffStorage.allKeys()?.forEach { key ->
-                decodeServerAffiliationInfo(key)?.let { aff ->
-                    if (aff.testDelayMillis < 0L) {
-                        removeServer(key)
-                        count++
-                    }
-                }
-            }
+            serverAffStorage.allKeys()?.asList().orEmpty()
         }
-        return count
+        return removeInvalidServers(candidates)
+    }
+
+    /**
+     * Removes the profiles among [candidates] whose last test failed.
+     *
+     * @return The number of server configurations removed.
+     */
+    fun removeInvalidServers(candidates: Collection<String>): Int {
+        val invalid = candidates.filter { key ->
+            val aff = decodeServerAffiliationInfo(key)
+            aff != null && aff.testDelayMillis < 0L
+        }
+        if (invalid.isEmpty()) return 0
+
+        // One index rewrite per group. Removing them one at a time re-read and re-wrote
+        // the whole group index (and took the cross-process lock) for every single node,
+        // which is hundreds of round trips after a failed test sweep.
+        invalid
+            .groupBy { key -> getSubscriptionId(decodeServerConfig(key)?.subscriptionId) }
+            .forEach { (subId, guids) -> removeServers(guids, subId) }
+        return invalid.size
     }
 
     /**
