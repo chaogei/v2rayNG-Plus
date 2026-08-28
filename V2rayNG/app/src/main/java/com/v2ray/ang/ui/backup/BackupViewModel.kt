@@ -81,7 +81,13 @@ class BackupViewModel(application: Application) : BaseViewModel(application) {
 
     fun restoreConfiguration(cacheDir: File, zipFile: File) {
         launchLoading {
-            val success = performRestore(cacheDir, zipFile)
+            val success = try {
+                performRestore(cacheDir, zipFile)
+            } finally {
+                // The caller copied the user's archive into the cache to read it; that copy
+                // carries every profile and credential and has no reason to outlive the restore.
+                zipFile.delete()
+            }
             if (success) {
                 toastSuccess(R.string.toast_success)
                 _viewModelEvent.send(BackupViewModelEvent.RestoreSuccess)
@@ -164,38 +170,59 @@ class BackupViewModel(application: Application) : BaseViewModel(application) {
         }
     }
 
+    /**
+     * The staging folder holds a plaintext copy of every MMKV store — profiles, local proxy
+     * credentials, the WebDAV password. It is deleted as soon as the zip exists instead of
+     * being left in the cache directory indefinitely.
+     */
     private fun backupConfigurationToCache(cacheDir: File, appName: String): Pair<Boolean, String> {
         val dateFormatted = SimpleDateFormat(
             "yyyy-MM-dd-HH-mm-ss",
             Locale.getDefault()
         ).format(System.currentTimeMillis())
         val folderName = "${appName}_$dateFormatted"
-        val backupDir = cacheDir.absolutePath + "/$folderName"
+        val backupDir = File(cacheDir, folderName)
         val outputZipFilePath = "${cacheDir.absolutePath}/$folderName.zip"
 
-        val count = MMKV.backupAllToDirectory(backupDir)
-        if (count <= 0) {
-            return Pair(false, "")
-        }
+        try {
+            val count = MMKV.backupAllToDirectory(backupDir.absolutePath)
+            if (count <= 0) {
+                return Pair(false, "")
+            }
 
-        return if (ZipUtil.zipFromFolder(backupDir, outputZipFilePath)) {
-            Pair(true, outputZipFilePath)
-        } else {
-            Pair(false, "")
+            return if (ZipUtil.zipFromFolder(backupDir.absolutePath, outputZipFilePath)) {
+                Pair(true, outputZipFilePath)
+            } else {
+                File(outputZipFilePath).delete()
+                Pair(false, "")
+            }
+        } finally {
+            backupDir.deleteRecursively()
         }
     }
 
     private fun performRestore(cacheDir: File, zipFile: File): Boolean {
-        val backupDir = cacheDir.absolutePath + "/${System.currentTimeMillis()}"
+        val backupDir = File(cacheDir, System.currentTimeMillis().toString())
 
-        if (!ZipUtil.unzipToFolder(zipFile, backupDir)) {
+        val count = try {
+            if (!ZipUtil.unzipToFolder(zipFile, backupDir.absolutePath)) {
+                return false
+            }
+            MMKV.restoreAllFromDirectory(backupDir.absolutePath)
+        } finally {
+            // Same plaintext store dump as on the backup path, this time unpacked from a
+            // file the user supplied.
+            backupDir.deleteRecursively()
+        }
+
+        if (count <= 0) {
             return false
         }
 
-        val count = MMKV.restoreAllFromDirectory(backupDir)
+        // Only reload and restart once something was actually restored; doing it for a
+        // failed restore restarts the tunnel for no reason.
         SettingsChangeManager.makeSetupGroupTab()
         SettingsChangeManager.makeRestartService()
-
-        return count > 0
+        return true
     }
 }

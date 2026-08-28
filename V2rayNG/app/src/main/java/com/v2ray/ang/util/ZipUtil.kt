@@ -78,21 +78,26 @@ object ZipUtil {
      */
     @Throws(IOException::class)
     fun unzipToFolder(zipFile: File, destDirectory: String): Boolean {
-        File(destDirectory).run {
-            if (!exists()) {
-                mkdirs()
-            }
+        val destination = File(destDirectory)
+        if (!destination.exists()) {
+            destination.mkdirs()
         }
         try {
             ZipFile(zipFile).use { zip ->
                 zip.entries().asSequence().forEach { entry ->
+                    // A restore archive is user supplied. Without this an entry named
+                    // "../../shared_prefs/x" would be written outside the cache directory.
+                    val target = ZipEntryPath.resolveWithin(destination, entry.name)
+                    if (target == null) {
+                        LogUtil.w(AppConfig.TAG, "Rejected zip entry outside the target directory")
+                        return@forEach
+                    }
                     zip.getInputStream(entry).use { input ->
-                        val filePath = destDirectory + File.separator + entry.name
                         if (!entry.isDirectory) {
-                            extractFile(input, filePath)
+                            target.parentFile?.mkdirs()
+                            extractFile(input, target.path)
                         } else {
-                            val dir = File(filePath)
-                            dir.mkdir()
+                            target.mkdirs()
                         }
                     }
                 }
