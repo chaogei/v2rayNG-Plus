@@ -34,6 +34,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.v2ray.ang.R
 import com.v2ray.ang.ui.compose.AppDivider
@@ -43,6 +44,8 @@ import com.v2ray.ang.ui.compose.colorFabInactiveLight
 @Composable
 fun MainBottomBar(
     displayText: String,
+    /** "VPN · Tokyo 01": the transport a start uses and the outbound it goes to. */
+    runStateText: String,
     isRunning: Boolean,
     /** True when a start would run Local proxy · Direct (no node selected / explicit direct mode). */
     startsLocalProxyDirect: Boolean,
@@ -66,13 +69,28 @@ fun MainBottomBar(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text(
-                    text = displayText,
-                    style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.semantics {
-                        contentDescription = displayText
-                    }
-                )
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(end = 88.dp)
+                        .semantics {
+                            contentDescription = "$displayText, $runStateText"
+                        }
+                ) {
+                    Text(
+                        text = displayText,
+                        style = MaterialTheme.typography.bodyMedium,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        text = runStateText,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
             }
         }
         // Short color tween makes start/stop feel like a state change rather

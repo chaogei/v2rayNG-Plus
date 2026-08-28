@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.v2ray.ang.AppConfig
 import com.v2ray.ang.R
+import com.v2ray.ang.core.RunModeLabels
 import com.v2ray.ang.dto.ConnectionTestResult
 import com.v2ray.ang.dto.GroupMapItem
 import com.v2ray.ang.dto.LocateTarget
@@ -37,6 +38,14 @@ import kotlinx.coroutines.withContext
 import java.util.concurrent.ConcurrentHashMap
 import java.util.regex.PatternSyntaxException
 
+/** What a start would actually do right now: which transport, and towards what. */
+data class MainRunState(
+    val rootMode: Boolean = false,
+    val vpnMode: Boolean = true,
+    val directOnly: Boolean = false,
+    val remarks: String? = null,
+)
+
 class MainViewModel(
     application: Application,
     private val dataSource: MainDataSource
@@ -57,6 +66,16 @@ class MainViewModel(
         )
     )
     val uiState: StateFlow<MainUiState> = _uiState.asStateFlow()
+
+    // ---------- Run state (transport + outbound), shown under the status line ----------
+    private val _runState = MutableStateFlow(
+        MainRunState(
+            rootMode = dataSource.isRootMode(),
+            vpnMode = dataSource.isVpnMode(),
+            directOnly = dataSource.isLocalProxyDirectOnly(),
+        )
+    )
+    val runState: StateFlow<MainRunState> = _runState.asStateFlow()
 
     // ---------- Keyword filtering ----------
     @Volatile
@@ -84,6 +103,39 @@ class MainViewModel(
     init {
         collectServiceEvents()
         setupGroupTab()
+        refreshRunState()
+    }
+
+    /**
+     * Re-read what a start would actually do. The profile remarks need a decode, so this
+     * runs off the main thread and the flow starts out without them.
+     */
+    fun refreshRunState() {
+        viewModelScope.launch(ioDispatcher) {
+            val directOnly = dataSource.isLocalProxyDirectOnly()
+            val remarks = dataSource.getSelectServer()
+                ?.takeIf { it.isNotEmpty() }
+                ?.let { dataSource.decodeServerConfig(it)?.remarks }
+            _runState.value = MainRunState(
+                rootMode = dataSource.isRootMode(),
+                vpnMode = dataSource.isVpnMode(),
+                directOnly = directOnly,
+                remarks = remarks,
+            )
+        }
+    }
+
+    /**
+     * "VPN · Tokyo 01" — the transport the next start uses plus the outbound it uses.
+     * Neither was visible anywhere on the main screen, so a proxy-only run and a VPN run
+     * looked identical once connected.
+     */
+    internal fun formatRunState(state: MainRunState): String {
+        val mode = dataSource.getString(RunModeLabels.modeLabel(state.rootMode, state.vpnMode))
+        val outbound = RunModeLabels.outboundLabel(state.directOnly, state.remarks)
+            ?.let { dataSource.getString(it) }
+            ?: state.remarks.orEmpty()
+        return "$mode · $outbound"
     }
 
     private fun collectServiceEvents() {
@@ -254,6 +306,8 @@ class MainViewModel(
                 doubleColumnDisplay = dataSource.getDoubleColumnDisplay()
             )
         }
+        // Coming back from Settings the run mode may be a different one entirely.
+        refreshRunState()
     }
 
     // ---------- Group & server loading ----------
@@ -359,6 +413,7 @@ class MainViewModel(
                         localProxyDirectOnly = dataSource.isLocalProxyDirectOnly()
                     )
                 }
+                refreshRunState()
                 groups.forEach { mutableServersForGroup(it.id) }
 
                 if (groups.isEmpty()) {
@@ -656,12 +711,14 @@ class MainViewModel(
         // Picking a node leaves the explicit direct-only choice behind.
         dataSource.setLocalProxyDirectOnly(false)
         _uiState.update { it.copy(selectedGuid = guid, localProxyDirectOnly = false) }
+        refreshRunState()
     }
 
     /** Keep the selection, but run the core with a freedom outbound only. */
     fun enableLocalProxyDirect() {
         dataSource.setLocalProxyDirectOnly(true)
         _uiState.update { it.copy(localProxyDirectOnly = true) }
+        refreshRunState()
     }
 
     fun refreshSelectedGuid() {
@@ -671,6 +728,7 @@ class MainViewModel(
                 localProxyDirectOnly = dataSource.isLocalProxyDirectOnly()
             )
         }
+        refreshRunState()
     }
 
     fun removeServerAndRefresh(guid: String) {
@@ -789,6 +847,9 @@ class MainViewModel(
 
     // ---------- Running state ----------
     private fun updateRunningState(running: Boolean, clearTestingText: Boolean = true) {
+        // A direct start can rewrite VPN to proxy-only on its way in, so the transport
+        // shown next to the status has to be re-read once the service reports back.
+        refreshRunState()
         _uiState.update { state ->
             state.copy(
                 isRunning = running,

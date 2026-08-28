@@ -119,6 +119,10 @@ class MainRepository(
         SettingsManager.setLocalProxyDirectOnly(enabled)
     }
 
+    override fun isVpnMode(): Boolean = SettingsManager.isVpnMode()
+
+    override fun isRootMode(): Boolean = SettingsManager.isRootMode()
+
     override fun getConfirmRemove(): Boolean =
         MmkvManager.decodeSettingsBool(AppConfig.PREF_CONFIRM_REMOVE, false)
 

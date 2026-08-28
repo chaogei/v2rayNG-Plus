@@ -21,6 +21,9 @@ interface MainDataSource : Closeable {
     fun isLocalProxyDirectOnly(): Boolean
     fun setLocalProxyDirectOnly(enabled: Boolean)
 
+    fun isVpnMode(): Boolean
+    fun isRootMode(): Boolean
+
     fun getConfirmRemove(): Boolean
     fun getDoubleColumnDisplay(): Boolean
     fun isGroupAllDisplayEnabled(): Boolean
