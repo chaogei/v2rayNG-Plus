@@ -173,7 +173,7 @@
     <string name="title_pref_per_app_proxy">Per-app proxy</string>
     <string name="summary_pref_per_app_proxy">General: checked apps use the proxy, and unchecked apps connect directly;\nBypass mode: checked apps connect directly, and unchecked apps use the proxy.\nThe option to automatically select apps that should use the proxy is in the menu.</string>
     <string name="title_pref_is_booted">Auto connect at startup</string>
-    <string name="summary_pref_is_booted">Automatically connects to the selected server at startup, which may be unsuccessful</string>
+    <string name="summary_pref_is_booted">Automatically starts at boot. With a node selected it connects to that node; with none, it comes up as Local proxy · Direct. Some devices block it.</string>
 
 
     <string name="subscription_updater_job_tips">The task will run in the background, and progress information will be displayed in the notification.</string>
@@ -574,6 +574,8 @@
     <string name="acc_add_rule">Add routing rule</string>
     <string name="acc_start">Start service</string>
     <string name="acc_stop">Stop service</string>
+    <string name="acc_widget_running">Connected via %1$s. Tap to stop.</string>
+    <string name="acc_widget_stopped">Not connected. Tap to start.</string>
     <string name="acc_back">Back</string>
     <string name="acc_search">Search</string>
     <string name="acc_add">Add configuration</string>

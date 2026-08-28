@@ -173,7 +173,7 @@
     <string name="title_pref_per_app_proxy">Proxy theo từng ứng dụng</string>
     <string name="summary_pref_per_app_proxy">Thông thường: ứng dụng đã chọn dùng proxy, ứng dụng chưa chọn kết nối trực tiếp;\nChế độ bỏ qua: ứng dụng đã chọn kết nối trực tiếp, ứng dụng chưa chọn dùng proxy.\nTrong trình đơn có tùy chọn tự động chọn các ứng dụng sẽ dùng proxy.</string>
     <string name="title_pref_is_booted">Tự động kết nối khi khởi động</string>
-    <string name="summary_pref_is_booted">Tự động kết nối với máy chủ đã chọn khi khởi động; thao tác này có thể không thành công</string>
+    <string name="summary_pref_is_booted">Tự khởi động khi bật máy: nếu đã chọn máy chủ thì kết nối tới máy chủ đó, nếu chưa thì chạy ở chế độ Proxy cục bộ · trực tiếp. Một số máy có thể chặn.</string>
 
 
     <string name="subscription_updater_job_tips">Tác vụ sẽ chạy trong nền và thông tin tiến độ sẽ hiển thị trong thông báo.</string>
@@ -574,6 +574,8 @@
     <string name="acc_add_rule">Thêm quy tắc định tuyến</string>
     <string name="acc_start">Khởi động dịch vụ</string>
     <string name="acc_stop">Dừng dịch vụ</string>
+    <string name="acc_widget_running">Đã kết nối qua %1$s. Nhấn để dừng.</string>
+    <string name="acc_widget_stopped">Chưa kết nối. Nhấn để khởi động.</string>
     <string name="acc_back">Quay lại</string>
     <string name="acc_search">Tìm kiếm</string>
     <string name="acc_add">Thêm cấu hình</string>

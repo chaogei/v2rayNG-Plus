@@ -173,7 +173,7 @@
     <string name="title_pref_per_app_proxy">分应用代理</string>
     <string name="summary_pref_per_app_proxy">常规：勾选的应用使用代理，未勾选的应用直连；\n绕行模式：勾选的应用直连，未勾选的应用使用代理。\n菜单中可自动选择需要使用代理的应用。</string>
     <string name="title_pref_is_booted">开机时自动连接</string>
-    <string name="summary_pref_is_booted">开机时自动连接选择的服务器，可能会不成功</string>
+    <string name="summary_pref_is_booted">开机后自动启动：已选节点时连接该节点，未选节点时按「本地代理 · 直连」启动。部分系统可能拦截，不保证成功</string>
 
 
     <string name="subscription_updater_job_tips">任务将在后台运行，在通知中会显示进度信息</string>
@@ -574,6 +574,8 @@
     <string name="acc_add_rule">添加路由规则</string>
     <string name="acc_start">启动服务</string>
     <string name="acc_stop">停止服务</string>
+    <string name="acc_widget_running">已通过 %1$s 连接，点按停止</string>
+    <string name="acc_widget_stopped">未连接，点按启动</string>
     <string name="acc_back">返回</string>
     <string name="acc_search">搜索</string>
     <string name="acc_add">添加配置</string>

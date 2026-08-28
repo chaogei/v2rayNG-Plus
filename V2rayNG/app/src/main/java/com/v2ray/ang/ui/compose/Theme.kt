@@ -104,7 +104,10 @@ internal val DarkColor = darkColorScheme(
 // Semantic Colors
 val colorPing = Color(0xFF009966) // Green
 val colorPingRed = Color(0xFFFF0099) // Pink Red
-val colorFabInactiveLight = Color(0xFF9C9C9C) // Gray
+// The idle FAB carries a white play glyph. #9C9C9C only reached 2.4:1 against
+// it, under the 3:1 that a meaningful icon needs; this gray reads the same but
+// clears it.
+val colorFabInactiveLight = Color(0xFF757575) // Gray
 val colorFabInactiveDark = Color(0xFF646464) // Dark Gray
 val dividerColorLight = Color(0xFFE0E0E0) // Light Gray
 val dividerColorDark = Color(0xFF424242) // Dark Gray

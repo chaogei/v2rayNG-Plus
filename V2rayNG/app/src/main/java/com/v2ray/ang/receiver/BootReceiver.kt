@@ -52,6 +52,8 @@ class BootReceiver : BroadcastReceiver() {
 
         // No selected profile is not a reason to skip: the service then comes up as a
         // local proxy with a freedom outbound, which is exactly what that state means now.
+        // LauncherManager applies the usual direct-start rules on the way, so a direct
+        // boot in VPN mode still falls back to proxy-only.
         LogUtil.i(AppConfig.TAG, "BootReceiver: Starting V2Ray service")
         LauncherManager.startService(context)
         SubscriptionUpdater.sync(context)
