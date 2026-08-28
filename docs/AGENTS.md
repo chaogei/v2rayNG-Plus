@@ -30,6 +30,7 @@ V2rayNG/
         CoreConfigManager.kt       # generates JSON config for v2ray core
         LocalInboundConfigurator.kt # inbound layout (unified + CUSTOM)
         LocalProxyDirectPolicy.kt  # direct-start switches VPN → proxy-only
+        RunModeLabels.kt           # one vocabulary for VPN / proxy-only / root / direct
         CoreNativeManager.kt       # JNI bridge to libv2ray AAR
         CoreOutboundBuilder.kt     # outbound config construction
         CoreConfigContextBuilder.kt
@@ -62,7 +63,7 @@ V2rayNG/
         RoutingSettingActivity.kt / RoutingEditActivity.kt
         SubSettingActivity.kt / SubEditActivity.kt
         UserAssetActivity.kt / UserAssetUrlActivity.kt
-        TaskerActivity.kt / UrlSchemeActivity.kt
+        TaskerActivity.kt / UrlSchemeActivity.kt / ExternalControlActivity.kt
         BackupActivity.kt / CheckUpdateActivity.kt / AboutActivity.kt
       fmt/                        # protocol URL parsers (VMESS, VLESS, TROJAN, SS, SOCKS, etc.)
       dto/                        # data classes + entities/
@@ -87,4 +88,4 @@ V2rayNG/
 - **Inbound layout**: `core/LocalInboundConfigurator.kt` (pure). Direct-start VPN→proxy-only: `core/LocalProxyDirectPolicy.kt`. Start-toast composition: `core/StartupToastPolicy.kt` (pure, messages joined into one toast because the snackbar host replaces rather than queues).
 - **Release dry run**: `.github/workflows/version-preview.yml` is `workflow_dispatch`-only and `contents: read`. It runs the version self-test and prints what the next master push / a PR build / a given manual tag would produce, without building, tagging or publishing. Use it instead of triggering `build.yml`, which publishes a real Release.
 - **Dependency policy**: `.github/dependabot.yml` covers GitHub Actions only — on purpose. No renovate, no gradle ecosystem: AGP/Kotlin/KSP/Compose move as one coupled matrix that CI can only compile-check, and every master push publishes a Release. Gradle upgrades are manual and must be justified. The core AAR version follows the `AndroidLibXrayLite` submodule tag, not a gradle coordinate.
-- **Upstream comparison**: [cmfa_lessons_zh.md](cmfa_lessons_zh.md) holds the audited comparison with MetaCubeX/ClashMetaForAndroid (what to borrow, what already exists here, what is explicitly out of scope, and how the two release pipelines differ). Its "外部控制" section is a placeholder for third-party intent control — it deliberately contains no action strings until that lands.
+- **Upstream comparison**: [cmfa_lessons_zh.md](cmfa_lessons_zh.md) holds the audited comparison with MetaCubeX/ClashMetaForAndroid (what to borrow, what already exists here, what is explicitly out of scope, and how the two release pipelines differ). External control is live: [external_control_zh.md](external_control_zh.md) (`com.v2ray.ang.action.{TOGGLE,START,STOP}`).

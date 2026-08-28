@@ -3,10 +3,10 @@
 对照对象：[MetaCubeX/ClashMetaForAndroid](https://github.com/MetaCubeX/ClashMetaForAndroid)（下称 **CMFA**），阅读版本 `c454d0e`（2026-08-16，`Bump version to 2.11.33 (211033)`）。
 本仓：[chaogei/v2rayNG-Plus](https://github.com/chaogei/v2rayNG-Plus)（fork 自 [2dust/v2rayNG](https://github.com/2dust/v2rayNG) v2.3.5）。
 
-本文只做「对照 + 结论」，**不改任何业务代码**。每条结论都注明依据文件，便于后续代理直接接手；凡是没有实现的东西，本文只写「待实现」，不杜撰接口名。
+本文做「对照 + 结论」。业务落地另见对应文档；凡是还没做的只写「待实现」，不杜撰接口名。
 
 - 发版规则的权威描述在根 [README「自动发版」](../README.md#自动发版github-actions)与 [`.github/scripts/compute-version.sh`](../.github/scripts/compute-version.sh) 的头注释，本文第 3 节只做与 CMFA 的对照和一致性核对结论。
-- 外部控制（第 5 节）目前是**占位**，等对应实现合入后由实现方补具体 action 字符串。
+- 外部控制（第 5 节）**已经落地**，action 与调用约定以 [external_control_zh.md](external_control_zh.md) 为准。
 
 ---
 
@@ -37,7 +37,7 @@ CMFA 的 `settings.gradle.kts` 拆成六个模块：
 
 | # | 能力 | CMFA 依据 | 建议 |
 | --- | --- | --- | --- |
-| 1 | **外部 Intent 控制**：任意第三方 App / 自动化工具可发 intent 启停代理 | `app/.../ExternalControlActivity.kt` + `app/src/main/AndroidManifest.xml`（`exported="true"` 的 activity，三个 `…action.{START,STOP,TOGGLE}_CLASH`） | **值得做**。本仓目前只有 Tasker 插件（`ui/shortcut/TaskerActivity`）和内部快捷方式 `ScStart/ScStop/ScSwitch`（`exported="false"`），普通自动化工具调不到。细节见第 5 节 |
+| 1 | **外部 Intent 控制**：任意第三方 App / 自动化工具可发 intent 启停代理 | `app/.../ExternalControlActivity.kt` + `app/src/main/AndroidManifest.xml`（`exported="true"` 的 activity，三个 `…action.{START,STOP,TOGGLE}_CLASH`） | **已落地**。本仓 action 为固定字符串 `com.v2ray.ang.action.{TOGGLE,START,STOP}`（不跟 flavor 的 applicationId 走，多包共存用 `-p`）。约定见 [external_control_zh.md](external_control_zh.md) 与第 5 节 |
 | 2 | **导入 URL 支持更多参数**：`clash://install-config?url=…&type=url|file&name=…&update-interval=…` | `ExternalControlActivity.kt` 的 `ACTION_VIEW` 分支 | **小幅可做**。本仓已有 `v2rayng://install-config` / `install-sub`（`ui/UrlSchemeActivity.kt`），但只吃 `url`；补 `name` / 自动更新间隔属于低风险增量 |
 | 3 | **运行时一键切 Rule / Global / Direct** | `design/.../component/ProxyMenu.kt`（`Request.PatchMode`）、`design/.../MainDesign.kt` | **谨慎**。语义不对等：clash 的 `PatchMode` 是热更新核心的一个字段；本仓的「模式」是路由规则集预设（`enums/RoutingType`：`WHITE`/`BLACK`/`GLOBAL`/`WHITE_IRAN`/`WHITE_RUSSIA`），切换要重建配置并重连核心。可以做的是「主界面菜单直接切规则集预设」这一交互，但必须明确提示会重连 |
 | 4 | **崩溃自述页**：崩溃后单独一屏展示 logcat，方便用户直接复制反馈 | `app/.../AppCrashedActivity.kt` + `log/SystemLogcat.dumpCrash()` | **值得做，成本低**。本仓有日志页（`ui/logcat/LogcatActivity`）但没有崩溃落地页，用户反馈时拿不到现场 |
@@ -54,7 +54,8 @@ CMFA 的 `settings.gradle.kts` 拆成六个模块：
 | 快捷设置磁贴 | `TileService` | `service/QSTileService` |
 | 订阅 / 配置定时更新 | `Profile.interval` + `ProvidersActivity` | `handler/SubscriptionUpdater`（`autoUpdate` + `updateInterval`）+ `ui/subscription/SubSettingActivity` |
 | 配置文件手工编辑 | `FilesActivity` | `ui/server/ServerCustomConfigActivity`（CUSTOM 配置，本 fork 会往里注入同一套本地入站） |
-| URL scheme 导入 | `clash://` / `clashmeta://` | `v2rayng://install-config`、`v2rayng://install-sub` |
+| 外部 Intent 启停 | `ExternalControlActivity` + `…action.{START,STOP,TOGGLE}_CLASH` | `ui/ExternalControlActivity` + `com.v2ray.ang.action.{TOGGLE,START,STOP}`（见 [external_control_zh.md](external_control_zh.md)） |
+| URL scheme 导入 | `clash://` / `clashmeta://` | `v2rayng://install-config`、`v2rayng://install-sub`（缺参 / 未知 host 会 toast，不再静默） |
 | 开机自启 | `BootReceiver` | `receiver/BootReceiver` |
 | 手动指定发版 tag | `Build Release` 的 `release-tag` 输入 | `workflow_dispatch` 的 `release_tag` 输入 |
 
@@ -146,11 +147,11 @@ CMFA 的做法：上游核心仓更新后用 `repository_dispatch`（`core-updat
 
 ---
 
-## 5. 外部控制（占位 — 待另一代理实现）
+## 5. 外部控制（已落地）
 
-本节先只记录 CMFA 的做法与本仓落地前必须回答的问题。**本仓当前没有对外暴露的启停 action，本节因此不写任何 action 字符串**；实现合入后由实现方在此补「action 名 + 示例调用 + 安全说明」，并把根 README 的对应锚点指过来。
+接口、adb 示例与安全边界以 **[external_control_zh.md](external_control_zh.md)** 为准，这里只记对照结论和当初那四个问题的实际答案。
 
-CMFA 的做法（事实，仅作参照，**不是本仓的接口**）：
+CMFA 的做法（事实，仅作参照）：
 
 - 一个 `exported="true"` 的 `ExternalControlActivity`，`onCreate` 里按 `intent.action` 分发，处理完立即 `finish()`；
 - 三个 action，命名空间是包名 + `.action.`（START / STOP / TOGGLE），常量集中在 `common` 模块的 `Intents`；
@@ -158,18 +159,19 @@ CMFA 的做法（事实，仅作参照，**不是本仓的接口**）：
 - 全部三个 action **不做任何调用方校验**，任意 App 都能启停 VPN；
 - README 的 `Automation` 一节把包名、action 名、URL scheme 直接列给用户。
 
-本仓落地前要回答的问题：
+本仓落地后的答案：
 
-1. **flavor 后缀**：本仓 applicationId 分 `com.v2ray.ang`（playstore）与 `com.v2ray.ang.fdroid`（fdroid）。action 字符串必须走 `${applicationId}` 占位，否则两个 flavor 的自动化脚本不通用。仓库里已有这个套路可循：`AppConfig.BROADCAST_ACTION_*` 基于 `ANG_PACKAGE`，manifest 里 widget 用 `${applicationId}.action.widget.click`。
-2. **安全**：暴露 exported 入口等于让任意已安装 App 启停 VPN。至少要在文档里写明风险；是否加校验（签名级权限 / 允许名单）由实现方决定，但不能默认抄 CMFA 的「完全不校验」而不作说明。
-3. **复用现有路径**：必须走与 Tasker 插件（`ui/shortcut/TaskerActivity`）和快捷方式（`ScStart` / `ScStop` / `ScSwitch`，当前 `exported="false"`）相同的启停实现，不要再写第二套服务控制逻辑。
-4. **与本 fork 的直连模式的关系**：本 fork 允许不选节点直接启动（「本地代理 · 直连」）。外部启动时若没有选中节点，应明确是启动直连还是报错——这是本仓独有、CMFA 不存在的分支。
+1. **flavor 后缀**：没有用 `${applicationId}`。action 固定为 `com.v2ray.ang.action.TOGGLE` / `START` / `STOP`，这样同一份脚本在 playstore 与 fdroid 上都能用；设备上同时装着两个渠道包时用 `-p` / `setPackage()` 指定。内部广播（`AppConfig.BROADCAST_ACTION_*`、widget click）仍然跟 applicationId，互不混用。
+2. **安全**：与 CMFA 一样不做调用方校验，文档写明「任意已安装 App 都能启停」。入口只读 action，不转发 component / data / extra。不希望被控时可在系统设置里停用该组件。
+3. **复用现有路径**：启动走 `LauncherManager.startServiceFromToggle`，停止走 `LauncherManager.stopService`，与磁贴 / 部件同一条路径。Activity 跑在 `:RunSoLibV2RayDaemon`，否则 UI 进程里的 `isRunning()` 永远是 false，TOGGLE 会变成二次启动。
+4. **直连模式**：未选节点也可以外部启动，走「本地代理 · 直连」；直连叠加 VPN 时仍按既有规则改成「仅代理」。
 
 ---
 
 ## 6. 结论速查
 
-- **抄**：外部 Intent 控制（第 5 节）、导入 URL 的附加参数、崩溃自述页。
+- **已落地**：外部 Intent 控制（第 5 节 / [external_control_zh.md](external_control_zh.md)）；URL scheme 缺参与未知 host 会明确失败；主界面一眼能看出当前传输方式与出站；订阅失败不再把「上次更新」写成刚才。
+- **仍可做**：导入 URL 的附加参数（名称 / 自动更新间隔）、崩溃自述页。
 - **看情况**：主界面直接切路由规则集预设（注意会重连）、安装包完整性提示页。
 - **不抄**：Clash 核心与 YAML profile 模型、`external-controller` 控制面、「连接列表」（CMFA 本体也没有）、多模块拆分、暗码入口、Go 源码现编、renovate 自动 bump、固定 alpha 通道。
-- **本轮改了什么**：文档、一个 dispatch-only 的 `version-preview.yml`、`dependabot.yml` 的范围注释，以及 `compute-version-test.sh` 里两条新增断言。发版算法（`compute-version.sh`）一行未动，既有断言的判据也一条未改。
+- **文档/CI 侧**：`version-preview.yml`（dispatch-only）、`dependabot.yml` 的范围注释，以及 `compute-version-test.sh` 里钉住真实 tag 形态的断言。发版算法（`compute-version.sh`）一行未动。

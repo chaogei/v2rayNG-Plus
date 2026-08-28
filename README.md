@@ -62,6 +62,16 @@ curl -x http://<IP>:10809 https://www.gstatic.com/generate_204 -v   # 双端口�
 curl -x socks5h://user:pass@<IP>:10808 https://www.gstatic.com/generate_204 -v
 ```
 
+连接后底栏第二行会显示当前传输方式和出站，例如 `VPN · Tokyo 01` 或 `仅代理 · 本地代理 · 直连`。设置页的模式行用同一套词。
+
+Tasker / MacroDroid / `adb` 可以直接发 Intent 启停，不必打开主界面：
+
+```bash
+adb shell am start -a com.v2ray.ang.action.TOGGLE
+```
+
+约定、flavor 差异与安全边界见 [docs/external_control_zh.md](docs/external_control_zh.md)。`v2rayng://install-config?url=` / `install-sub` 缺参或 host 不对会明确提示，不再静默打开主界面。
+
 ---
 
 ## 自动发版（GitHub Actions）
@@ -202,7 +212,8 @@ Debug 包用仓库内固定的 `V2rayNG/debug.keystore`（密码 `android` / 别
 
 同类项目 [MetaCubeX/ClashMetaForAndroid](https://github.com/MetaCubeX/ClashMetaForAndroid)（CMFA）的自动化、发版流程与模块划分被逐条读过并与本仓对照，完整笔记在 **[docs/cmfa_lessons_zh.md](docs/cmfa_lessons_zh.md)**。结论摘要：
 
-- **值得借鉴**：面向第三方自动化的外部 Intent 控制（启停代理）、导入 URL 的附加参数（名称 / 自动更新间隔）、崩溃后自动展示日志的自述页。
+- **已落地**：面向第三方自动化的外部 Intent 控制（`com.v2ray.ang.action.TOGGLE` / `START` / `STOP`，约定见 [docs/external_control_zh.md](docs/external_control_zh.md)）；URL scheme 缺参会明确失败；主界面显示当前传输方式与出站；订阅失败不再把「上次更新」写成刚才。
+- **仍可做**：导入 URL 的附加参数（名称 / 自动更新间隔）、崩溃后自动展示日志的自述页。
 - **本仓已有**：分应用代理、日志页、快捷设置磁贴、订阅定时更新、URL scheme 导入、手填 tag 发版；本仓另有 CMFA 没有的桌面小组件、Tasker 插件、应用内检查更新与 WebDAV 备份。
 - **明确不抄**：Clash 核心与 YAML profile 模型、`external-controller` 控制面、多模块拆分、renovate 自动 bump 依赖。「活动连接列表」也不在借鉴范围——CMFA 应用本体并没有这个界面。
 - **发版差异**：CMFA 手动填 tag 并把版本号回写进 `build.gradle.kts` 后 push；本仓不回写仓库，版本号由已有 tag 推出并通过 `-PversionName` / `-PversionCode` 注入，因此不存在「发版 commit 又触发发版」。详见上文[自动发版](#自动发版github-actions)。
