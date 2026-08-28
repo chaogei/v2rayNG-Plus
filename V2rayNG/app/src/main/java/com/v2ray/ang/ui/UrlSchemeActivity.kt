@@ -3,7 +3,6 @@ package com.v2ray.ang.ui
 import android.content.Intent
 import android.os.Bundle
 import androidx.compose.runtime.Composable
-import androidx.lifecycle.lifecycleScope
 import com.v2ray.ang.AppConfig
 import com.v2ray.ang.R
 import com.v2ray.ang.extension.toastError
@@ -13,7 +12,9 @@ import com.v2ray.ang.ui.base.BaseComponentActivity
 import com.v2ray.ang.ui.main.MainActivity
 import com.v2ray.ang.util.LogRedaction
 import com.v2ray.ang.util.LogUtil
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.net.URLDecoder
@@ -29,8 +30,7 @@ class UrlSchemeActivity : BaseComponentActivity() {
                     // away while this activity is still the foreground task; the import itself
                     // is too slow to wait for and a background start would be blocked.
                     startActivity(Intent(this, MainActivity::class.java))
-                    importThenFinish(request)
-                    return
+                    startImport(request)
                 }
 
                 UrlSchemeRequest.MissingUrl -> toastError(R.string.toast_url_scheme_missing_url)
@@ -69,30 +69,25 @@ class UrlSchemeActivity : BaseComponentActivity() {
         else -> UrlSchemeRequest.Empty
     }
 
-    /**
-     * Finishing before the import returns would cancel it with `lifecycleScope`, so this
-     * activity stays alive — invisible, behind the main screen it just opened — until there
-     * is an outcome to report.
-     */
-    private fun importThenFinish(request: UrlSchemeRequest.Import) {
+    private fun startImport(request: UrlSchemeRequest.Import) {
         // The incoming link is a share link or a subscription URL, so it carries the node
         // password or the subscription token in its path, query or fragment.
         LogUtil.i(AppConfig.TAG, "URL scheme received: ${LogRedaction.url(request.url)}")
 
         val url = UrlSchemeRequest.mergeFragment(decodeOrRaw(request.url), request.fragment)
+        val context = applicationContext
 
-        lifecycleScope.launch(Dispatchers.IO) {
+        importScope.launch {
             val imported = runCatching { AngConfigManager.importBatchConfig(url, "", false) }
                 .onFailure { LogUtil.e(AppConfig.TAG, "URL scheme import failed", it) }
                 .getOrNull()
             val count = imported?.let { it.first + it.second } ?: 0
             withContext(Dispatchers.Main) {
                 if (count > 0) {
-                    toastSuccess(R.string.import_subscription_success)
+                    context.toastSuccess(R.string.import_subscription_success)
                 } else {
-                    toastError(R.string.import_subscription_failure)
+                    context.toastError(R.string.import_subscription_failure)
                 }
-                finish()
             }
         }
     }
@@ -107,5 +102,15 @@ class UrlSchemeActivity : BaseComponentActivity() {
     } catch (e: IllegalArgumentException) {
         LogUtil.w(AppConfig.TAG, "URL scheme: link is not percent-encoded, importing verbatim", e)
         url
+    }
+
+    private companion object {
+        /**
+         * This activity finishes as soon as the main screen is up, which is well before an
+         * import that has to fetch a subscription is done. `lifecycleScope` would cancel it
+         * halfway through and the link would be silently dropped, so the work outlives the
+         * activity; only the application context is captured.
+         */
+        val importScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     }
 }
