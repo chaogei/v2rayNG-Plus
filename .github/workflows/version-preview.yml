@@ -1,0 +1,89 @@
+name: Version preview
+
+# Read-only dry run of the release numbering. Nothing here builds, tags,
+# publishes or writes to the repository - it exists so that "what will the next
+# release be?" and "does compute-version.sh still behave?" can be answered
+# without triggering build.yml, which would take a full NDK + all-ABI build and
+# would actually publish a Release.
+#
+# The numbering itself lives in .github/scripts/compute-version.sh; this
+# workflow only calls it and prints the result.
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: 'Optional tag to simulate a manual release with (e.g. v2.4.0-plus). Empty = only the automatic paths are shown.'
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+        with:
+          # The tag scan is the whole point here, so the full tag list is required.
+          fetch-depth: '0'
+          fetch-tags: 'true'
+
+      - name: Test version script
+        run: bash .github/scripts/compute-version-test.sh
+
+      - name: Preview the next versions
+        env:
+          INPUT_TAG: ${{ inputs.release_tag }}
+        run: |
+          set -euo pipefail
+
+          # GITHUB_OUTPUT is cleared so the script prints to stdout instead of
+          # appending to this step's outputs.
+          compute() {
+            EVENT_NAME="$1" INPUT_RELEASE_TAG="$2" COMMIT_SHA="${GITHUB_SHA}" \
+              GITHUB_OUTPUT="" bash .github/scripts/compute-version.sh 2>/dev/null
+          }
+          field() {
+            printf '%s\n' "$1" | sed -n "s/^$2=//p"
+          }
+          row() {
+            local label="$1" out="$2"
+            printf '| %s | `%s` | %s | %s |\n' \
+              "$label" \
+              "$(field "$out" version_name)" \
+              "$(field "$out" version_code)" \
+              "$(t=$(field "$out" release_tag); [ -n "$t" ] && printf '`%s`' "$t" || printf '_no tag / 不打 tag_')"
+          }
+
+          PUSH=$(compute push "")
+          PR=$(compute pull_request "")
+
+          {
+            echo "## 版本预览 / Version preview"
+            echo
+            echo "只读预演，不打 tag、不发 Release。算法见 \`.github/scripts/compute-version.sh\`。"
+            echo "Read-only dry run: no tag is created and no Release is published."
+            echo
+            echo "### 现有 \`-plus\` tag / existing \`-plus\` tags"
+            echo
+            TAGS=$(git tag --list 'v*-plus' | sort -V)
+            if [ -n "$TAGS" ]; then
+              printf '%s\n' "$TAGS" | sed 's/^/- `/; s/$/`/'
+            else
+              echo "- _(none)_"
+            fi
+            echo
+            echo "### 计算结果 / computed"
+            echo
+            echo "| 场景 / scenario | versionName | versionCode | release tag |"
+            echo "| --- | --- | --- | --- |"
+            row "下一次 master push / next push to master" "$PUSH"
+            row "PR 构建 / PR build (this sha)" "$PR"
+            if [ -n "${INPUT_TAG//[[:space:]]/}" ]; then
+              row "手填 tag / manual release_tag = \`${INPUT_TAG}\`" "$(compute workflow_dispatch "$INPUT_TAG")"
+            fi
+          } | tee -a "$GITHUB_STEP_SUMMARY"

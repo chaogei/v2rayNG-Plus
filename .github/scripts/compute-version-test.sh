@@ -104,7 +104,20 @@ expect "blank manual tag falls back to the computed one" \
   $'version_code=750\nversion_name=2.3.5.4-plus\nrelease_tag=v2.3.5.4-plus' \
   "$(run workflow_dispatch "$TAGS_3" "   " deadbeef)"
 
-# 11. versionCode must never repeat across releases. Replay the whole history
+# 11. The live repository state: the tag line starts at .3 and the baseline tag
+#     v2.3.5-plus was never pushed. Every case above starts at .1 with the
+#     baseline present, so this pins the shape the repo actually has: the scan
+#     keys off the highest N, not off a complete 1..N run, and a missing
+#     baseline tag must not shift the code (OFFSET stays 0).
+TAGS_LIVE=$'v2.3.5.3-plus\nv2.3.5.4-plus\nv2.3.5.5-plus\nv2.3.5.6-plus'
+expect "gapped line without a baseline tag" \
+  $'version_code=753\nversion_name=2.3.5.7-plus\nrelease_tag=v2.3.5.7-plus' \
+  "$(run push "$TAGS_LIVE" "" deadbeef)"
+expect "PR against a gapped line" \
+  $'version_code=752\nversion_name=2.3.5.6-pr.abc1234-plus\nrelease_tag=' \
+  "$(run pull_request "$TAGS_LIVE" "" abc1234def5678)"
+
+# 12. versionCode must never repeat across releases. Replay the whole history
 #     one release at a time and check the codes are strictly increasing.
 CODES=""
 TAGS_SO_FAR=""
