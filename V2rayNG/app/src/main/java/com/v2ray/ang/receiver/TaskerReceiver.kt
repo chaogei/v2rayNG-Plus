@@ -25,14 +25,20 @@ class TaskerReceiver : BroadcastReceiver() {
             val guid = bundle?.getString(AppConfig.TASKER_EXTRA_BUNDLE_GUID).orEmpty()
 
             if (switch == null || TextUtils.isEmpty(guid)) {
+                // Silence here used to look like the app ignoring Tasker; the task is almost
+                // always one that was saved by an older build and no longer carries a profile.
+                LogUtil.w(AppConfig.TAG, "Tasker: ignoring an action with no switch or profile")
                 return
             } else if (switch) {
                 if (guid == AppConfig.TASKER_DEFAULT_GUID) {
+                    LogUtil.i(AppConfig.TAG, "Tasker: starting the selected profile")
                     LauncherManager.startServiceFromToggle(context)
                 } else {
+                    LogUtil.i(AppConfig.TAG, "Tasker: starting a specific profile")
                     LauncherManager.startService(context, guid)
                 }
             } else {
+                LogUtil.i(AppConfig.TAG, "Tasker: stopping the service")
                 LauncherManager.stopService(context)
             }
         } catch (e: Exception) {

@@ -606,5 +606,11 @@
     <string name="tasker_blurb_stop">停止 %1$s</string>
     <string name="connection_test_empty_message">沒有詳細資訊</string>
     <string name="value_unknown">未知</string>
+    <string name="external_control_label">外部控制</string>
+    <string name="external_control_already_running">服務已在執行</string>
+    <string name="external_control_already_stopped">服務未在執行</string>
+    <string name="external_control_unknown_action">不支援的外部控制指令</string>
+    <string name="toast_url_scheme_missing_url">連結缺少 url 參數</string>
+    <string name="toast_url_scheme_unsupported">不支援的連結</string>
 
 </resources>

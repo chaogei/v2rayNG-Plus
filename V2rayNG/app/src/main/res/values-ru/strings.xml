@@ -606,5 +606,11 @@
     <string name="tasker_blurb_stop">Остановить %1$s</string>
     <string name="connection_test_empty_message">подробности отсутствуют</string>
     <string name="value_unknown">неизвестно</string>
+    <string name="external_control_label">Внешнее управление</string>
+    <string name="external_control_already_running">Служба уже запущена</string>
+    <string name="external_control_already_stopped">Служба не запущена</string>
+    <string name="external_control_unknown_action">Неподдерживаемая команда внешнего управления</string>
+    <string name="toast_url_scheme_missing_url">В ссылке нет параметра url</string>
+    <string name="toast_url_scheme_unsupported">Неподдерживаемая ссылка</string>
 
 </resources>

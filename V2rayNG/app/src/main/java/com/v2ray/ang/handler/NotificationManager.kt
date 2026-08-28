@@ -26,6 +26,17 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlin.math.min
 
+/**
+ * Picks the one line the notification, the tile and the widget all lead with.
+ *
+ * A blank remark is as good as no profile — the run is a local proxy going out direct, and
+ * saying so beats an empty title that reads like a connection to something unnamed.
+ */
+object NotificationTitlePolicy {
+    fun title(remarks: String?, directLabel: String): String =
+        remarks?.trim()?.takeUnless { it.isEmpty() } ?: directLabel
+}
+
 object NotificationManager {
     private const val NOTIFICATION_ID = 1
     private const val NOTIFICATION_PENDING_INTENT_CONTENT = 0
@@ -62,6 +73,13 @@ object NotificationManager {
      * @param currentConfig The current profile configuration.
      */
     fun showNotification(currentConfig: ProfileItem?) {
+        showNotification(currentConfig?.remarks)
+    }
+
+    /**
+     * @param remarks Name of the running profile, or null/blank for a local-proxy direct run.
+     */
+    private fun showNotification(remarks: String?) {
         val service = getService() ?: return
 
         // Reset last query time to avoid querying stats too soon after showing the notification
@@ -93,7 +111,9 @@ object NotificationManager {
 
         mBuilder = NotificationCompat.Builder(service, channelId)
             .setSmallIcon(R.drawable.ic_stat_name)
-            .setContentTitle(currentConfig?.remarks ?: service.getString(R.string.title_local_proxy_direct))
+            .setContentTitle(
+                NotificationTitlePolicy.title(remarks, service.getString(R.string.title_local_proxy_direct))
+            )
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setOngoing(true)
             .setShowWhen(false)
@@ -123,7 +143,13 @@ object NotificationManager {
     fun ensureForeground() {
         val service = getService() ?: return
         val notification = mBuilder?.build()
-        if (notification == null) showNotification(null) else service.startForeground(NOTIFICATION_ID, notification)
+        if (notification != null) {
+            service.startForeground(NOTIFICATION_ID, notification)
+            return
+        }
+        // Rebuilding from the core's own idea of what is running keeps a re-entered start
+        // command from relabelling an active node as a direct run.
+        showNotification(CoreServiceManager.getRunningServerName())
     }
 
     /**

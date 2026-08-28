@@ -606,5 +606,11 @@
     <string name="tasker_blurb_stop">Stop %1$s</string>
     <string name="connection_test_empty_message">no details available</string>
     <string name="value_unknown">unknown</string>
+    <string name="external_control_label">External control</string>
+    <string name="external_control_already_running">Service is already running</string>
+    <string name="external_control_already_stopped">Service is not running</string>
+    <string name="external_control_unknown_action">Unsupported external control action</string>
+    <string name="toast_url_scheme_missing_url">The link has no url parameter</string>
+    <string name="toast_url_scheme_unsupported">Unsupported link</string>
 
 </resources>
