@@ -167,7 +167,9 @@ object HttpUtil {
 
             val headersMap = JsonUtil.parseHeadersToMap(request.requestHeaders)
             for ((key, value) in headersMap) {
-                LogUtil.d(AppConfig.TAG, "Adding custom header: $key = $value")
+                // The value is not logged: a custom subscription header is where an
+                // Authorization token gets configured.
+                LogUtil.d(AppConfig.TAG, "Adding custom header: ${LogRedaction.headerName(key)}")
                 try {
                     requestBuilder.header(key, value)
                 } catch (_: IllegalArgumentException) {
