@@ -13,7 +13,9 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -35,6 +37,7 @@ import com.v2ray.ang.extension.toastSuccess
 import com.v2ray.ang.handler.MmkvManager
 import com.v2ray.ang.handler.SettingsChangeManager
 import com.v2ray.ang.handler.SettingsManager
+import com.v2ray.ang.handler.SubscriptionFilter
 import com.v2ray.ang.handler.SubscriptionUpdater
 import com.v2ray.ang.ui.base.BaseComponentActivity
 import com.v2ray.ang.ui.compose.AppTopBar
@@ -201,6 +204,16 @@ fun SubEditScreen(
             FormTextField(stringResource(R.string.sub_setting_user_agent), userAgent, { userAgent = it })
             FormTextField(stringResource(R.string.sub_setting_request_headers), requestHeaders, { requestHeaders = it })
             FormTextField(stringResource(R.string.sub_setting_filter), filter, { filter = it })
+            // A pattern that does not compile is not applied at all, so without this the
+            // group silently imports every node the subscription carries.
+            if (SubscriptionFilter.isUnusable(filter)) {
+                Text(
+                    text = stringResource(R.string.sub_filter_invalid),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp)
+                )
+            }
             SettingsSwitchItem(
                 title = stringResource(R.string.sub_setting_enable),
                 checked = enabled,
@@ -209,6 +222,7 @@ fun SubEditScreen(
 
             SettingsSwitchItem(
                 title = stringResource(R.string.sub_auto_update),
+                summary = stringResource(R.string.summary_sub_auto_update),
                 checked = autoUpdate,
                 onCheckedChange = { autoUpdate = it }
             )

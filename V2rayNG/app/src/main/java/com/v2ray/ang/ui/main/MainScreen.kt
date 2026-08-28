@@ -44,6 +44,8 @@ fun MainScreen(
     val isLoading by mainViewModel.isLoading.collectAsStateWithLifecycle()
     val isRunning = uiState.isRunning
     val displayText = mainViewModel.formatStatus(uiState.status, uiState.localProxyDirectOnly)
+    val runState by mainViewModel.runState.collectAsStateWithLifecycle()
+    val runStateText = mainViewModel.formatRunState(runState)
     // Direct-only keeps the selection around so one tap goes back to it, but nothing
     // should look selected while the core runs without a remote outbound.
     val selectedGuid = uiState.selectedGuid?.takeUnless { uiState.localProxyDirectOnly }
@@ -183,6 +185,7 @@ fun MainScreen(
             bottomBar = {
                 MainBottomBar(
                     displayText = displayText,
+                    runStateText = runStateText,
                     isRunning = isRunning,
                     startsLocalProxyDirect = uiState.localProxyDirectOnly,
                     isDarkTheme = isDarkTheme,

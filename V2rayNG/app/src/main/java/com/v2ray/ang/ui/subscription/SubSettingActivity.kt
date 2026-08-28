@@ -42,6 +42,7 @@ import com.v2ray.ang.R
 import com.v2ray.ang.extension.toast
 import com.v2ray.ang.handler.MmkvManager
 import com.v2ray.ang.handler.MmkvManager.rememberMmkvBool
+import com.v2ray.ang.handler.SubscriptionUpdater
 import com.v2ray.ang.ui.base.BaseComponentActivity
 import com.v2ray.ang.ui.compose.AppTopBar
 import com.v2ray.ang.ui.compose.DeleteConfirmDialog
@@ -195,9 +196,31 @@ fun SubSettingScreen(
                                     )
                                 }
                                 Spacer(modifier = Modifier.height(2.dp))
+                                // A bare timestamp could not be told apart from "no
+                                // update has ever worked", and nothing said whether the
+                                // background updater was even scheduled for this group.
+                                val lastUpdated = Utils.formatTimestamp(subCache.subscription.lastUpdated)
                                 Text(
-                                    text = Utils.formatTimestamp(subCache.subscription.lastUpdated),
+                                    text = if (lastUpdated.isEmpty()) {
+                                        stringResource(R.string.sub_never_updated)
+                                    } else {
+                                        stringResource(R.string.sub_last_updated, lastUpdated)
+                                    },
                                     style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Text(
+                                    text = if (subCache.subscription.autoUpdate && subCache.subscription.url.isNotEmpty()) {
+                                        stringResource(
+                                            R.string.sub_auto_update_every,
+                                            SubscriptionUpdater.effectiveIntervalMinutes(
+                                                subCache.subscription.updateInterval
+                                            )
+                                        )
+                                    } else {
+                                        stringResource(R.string.sub_auto_update_off)
+                                    },
+                                    style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
