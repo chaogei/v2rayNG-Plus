@@ -85,6 +85,7 @@ curl -x socks5h://user:pass@<IP>:10808 https://www.gstatic.com/generate_204 -v
   | `APP_KEYSTORE_PASSWORD` / `APP_KEYSTORE_ALIAS` / `APP_KEY_PASSWORD` | keystore 口令 / 别名 / key 口令 | 同上（四个 secrets 必须齐全才算配置了正式签名） |
   | `GPG_PRIVATE_KEY` | 给 APK 附加 `.sig` 签名 | 跳过 GPG 步骤，不影响发版 |
 - **Release 附件命名**与应用内更新器匹配：`v2rayNG_<versionName>-fdroid_<abi>.apk`（fdroid flavor）与 `v2rayNG_<versionName>_<abi>.apk`（playstore flavor）。
+- **发版前想先看号**：手动触发 `Version preview`（`.github/workflows/version-preview.yml`，只有 `workflow_dispatch`）即可在不构建、不打 tag、不发 Release 的前提下，打印「下一次 master push / PR 构建 / 手填某个 tag」分别会得到的 versionName 与 versionCode，并顺带跑一遍版本脚本自测。
 
 ---
 
@@ -192,3 +193,16 @@ Debug 包用仓库内固定的 `V2rayNG/debug.keystore`（密码 `android` / 别
 - 上游项目：[2dust/v2rayNG](https://github.com/2dust/v2rayNG)（GPL-3.0）
 - 核心：[XTLS/Xray-core](https://github.com/XTLS/Xray-core)（经 [2dust/AndroidLibXrayLite](https://github.com/2dust/AndroidLibXrayLite) 封装）
 - 本 fork 同样以 [GPL-3.0](LICENSE) 发布
+
+---
+
+<a id="cmfa-lessons"></a>
+
+## 横向对照：ClashMetaForAndroid
+
+同类项目 [MetaCubeX/ClashMetaForAndroid](https://github.com/MetaCubeX/ClashMetaForAndroid)（CMFA）的自动化、发版流程与模块划分被逐条读过并与本仓对照，完整笔记在 **[docs/cmfa_lessons_zh.md](docs/cmfa_lessons_zh.md)**。结论摘要：
+
+- **值得借鉴**：面向第三方自动化的外部 Intent 控制（启停代理）、导入 URL 的附加参数（名称 / 自动更新间隔）、崩溃后自动展示日志的自述页。
+- **本仓已有**：分应用代理、日志页、快捷设置磁贴、订阅定时更新、URL scheme 导入、手填 tag 发版；本仓另有 CMFA 没有的桌面小组件、Tasker 插件、应用内检查更新与 WebDAV 备份。
+- **明确不抄**：Clash 核心与 YAML profile 模型、`external-controller` 控制面、多模块拆分、renovate 自动 bump 依赖。「活动连接列表」也不在借鉴范围——CMFA 应用本体并没有这个界面。
+- **发版差异**：CMFA 手动填 tag 并把版本号回写进 `build.gradle.kts` 后 push；本仓不回写仓库，版本号由已有 tag 推出并通过 `-PversionName` / `-PversionCode` 注入，因此不存在「发版 commit 又触发发版」。详见上文[自动发版](#自动发版github-actions)。
