@@ -403,6 +403,8 @@
     <string name="title_export_config_count">Xuất %d cấu hình</string>
     <string name="title_update_config_count">Cập nhật %d cấu hình</string>
     <string name="title_update_asset_count">Đã cập nhật %d tệp tài nguyên</string>
+    <string name="toast_asset_download_partial">Đã cập nhật %1$d tệp tài nguyên, thất bại: %2$s</string>
+    <string name="toast_asset_download_failed">Tải xuống thất bại: %s</string>
     <string name="title_update_subscription_result">Đã cập nhật %1$d cấu hình (%2$d thành công, %3$d thất bại, %4$d bỏ qua)</string>
     <string name="title_update_subscription_no_subscription">Không có đăng ký</string>
     <string name="toast_server_not_found_in_group">Không tìm thấy máy chủ đã chọn trong nhóm hiện tại</string>

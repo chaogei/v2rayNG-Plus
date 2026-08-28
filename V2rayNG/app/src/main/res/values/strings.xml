@@ -403,6 +403,8 @@
     <string name="title_export_config_count">Export %d configs</string>
     <string name="title_update_config_count">Update %d configs</string>
     <string name="title_update_asset_count">Updated %d asset files</string>
+    <string name="toast_asset_download_partial">Updated %1$d asset files, failed: %2$s</string>
+    <string name="toast_asset_download_failed">Download failed: %s</string>
     <string name="title_update_subscription_result">Updated %1$d configs (%2$d success, %3$d failed, %4$d skipped)</string>
     <string name="title_update_subscription_no_subscription">No subscriptions</string>
     <string name="toast_server_not_found_in_group">Selected server not found in current group</string>

@@ -220,10 +220,21 @@ class UserAssetActivity : HelperBaseComponentActivity() {
             val result = withContext(Dispatchers.IO) {
                 viewModel.downloadGeoFiles(extDir, httpPort, proxyUsername, proxyPassword)
             }
-            if (result.successCount > 0) {
-                toast(getString(R.string.title_update_asset_count, result.successCount))
-            } else {
-                toast(getString(R.string.toast_failure))
+            // The result already knew which files failed; only the success count used to
+            // reach the user, so a stale geo file looked like a completed update.
+            val failed = result.failedAssets.joinToString(", ")
+            when (result.outcome()) {
+                GeoDownloadOutcome.ALL_SUCCEEDED ->
+                    toastSuccess(getString(R.string.title_update_asset_count, result.successCount))
+
+                GeoDownloadOutcome.PARTIALLY_FAILED ->
+                    toastError(getString(R.string.toast_asset_download_partial, result.successCount, failed))
+
+                GeoDownloadOutcome.ALL_FAILED ->
+                    toastError(getString(R.string.toast_asset_download_failed, failed))
+
+                GeoDownloadOutcome.NOTHING_ATTEMPTED ->
+                    toastError(getString(R.string.toast_failure))
             }
             refreshData().join()
             isLoadingState.value = false
