@@ -79,15 +79,32 @@ object SubscriptionUpdater {
     }
 
     /**
-     * Update the last updated timestamp and reschedule the task.
-     * This is used to reset the periodic timer and prevent rapid rescheduling loops.
+     * Push the next run one full interval out, without claiming the run succeeded.
+     *
+     * This used to stamp `lastUpdated` before dispatching the work, purely to stop the
+     * periodic task from rescheduling itself in a tight loop. That made a failed update
+     * indistinguishable from a successful one everywhere the timestamp is shown, and
+     * "Last updated: a minute ago" on a subscription that has been failing for days is
+     * worse than no information. Only AngConfigManager.updateConfigViaSub writes the
+     * timestamp now, and only when configs actually came back.
      */
-    fun updateLastUpdatedAndReschedule(context: Context = AngApplication.application, subId: String) {
+    fun rescheduleAfterRun(context: Context = AngApplication.application, subId: String) {
         val subItem = MmkvManager.decodeSubscription(subId) ?: return
-        subItem.lastUpdated = System.currentTimeMillis()
-        MmkvManager.encodeSubscription(subId, subItem)
-        syncOne(context, subId)
+        scheduleOne(
+            context = context,
+            subId = subId,
+            existingWorkPolicy = ExistingPeriodicWorkPolicy.REPLACE,
+            initialDelayOverrideMillis = effectiveIntervalMinutes(subItem.updateInterval) * 60 * 1000L
+        )
     }
+
+    /**
+     * The interval the scheduler really uses: anything under the WorkManager floor is
+     * raised to it, so the settings screen can say what will happen instead of echoing
+     * a number that gets ignored.
+     */
+    fun effectiveIntervalMinutes(requestedMinutes: Long): Long =
+        maxOf(AppConfig.SUBSCRIPTION_MIN_INTERVAL_MINUTES, requestedMinutes)
 
     // -------------------------------------------------------------------------
     // Internal scheduling logic
@@ -98,7 +115,8 @@ object SubscriptionUpdater {
     private fun scheduleOne(
         context: Context,
         subId: String,
-        existingWorkPolicy: ExistingPeriodicWorkPolicy
+        existingWorkPolicy: ExistingPeriodicWorkPolicy,
+        initialDelayOverrideMillis: Long? = null
     ) {
         val subItem = MmkvManager.decodeSubscription(subId) ?: return
         val rw = RemoteWorkManager.getInstance(context)
@@ -113,16 +131,13 @@ object SubscriptionUpdater {
             return
         }
 
-        val intervalMinutes = maxOf(
-            AppConfig.SUBSCRIPTION_MIN_INTERVAL_MINUTES,
-            subItem.updateInterval
-        )
+        val intervalMinutes = effectiveIntervalMinutes(subItem.updateInterval)
 
         // Base initial delay on the last successful update time persisted in subscription.
         val lastUpdated = subItem.lastUpdated
         val intervalMillis = intervalMinutes * 60 * 1000L
         val now = System.currentTimeMillis()
-        var initialDelayMillis = if (lastUpdated <= 0L) {
+        var initialDelayMillis = initialDelayOverrideMillis ?: if (lastUpdated <= 0L) {
             0L
         } else {
             maxOf(0L, lastUpdated + intervalMillis - now)
@@ -176,7 +191,7 @@ object SubscriptionUpdater {
                 return Result.success()
             }
 
-            updateLastUpdatedAndReschedule(applicationContext, subId)
+            rescheduleAfterRun(applicationContext, subId)
 
             MessageHelper.sendMsg2SubscriptionService(
                 applicationContext,

@@ -72,6 +72,9 @@ class SubscriptionsViewModel(application: Application) : BaseViewModel(applicati
             autoTestAfterUpdateSubscription -> updateSubscriptionsMore()
             // If only update is enabled, perform local update with UI loading state
             updateSubscription -> updateSubscriptionsOnly()
+            // Confirming the dialog with every switch off did nothing at all and said
+            // nothing about it, which reads as a broken button.
+            else -> toastError(R.string.toast_sub_update_nothing_enabled)
         }
     }
 

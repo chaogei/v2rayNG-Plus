@@ -17,6 +17,7 @@ import com.v2ray.ang.dto.entities.SubscriptionCache
 import com.v2ray.ang.extension.isComplexType
 import com.v2ray.ang.extension.matchesPattern
 import com.v2ray.ang.extension.moveItem
+import com.v2ray.ang.handler.SubscriptionFilter
 import com.v2ray.ang.ui.base.BaseViewModel
 import com.v2ray.ang.util.LogUtil
 import kotlinx.coroutines.CancellationException
@@ -483,21 +484,42 @@ class MainViewModel(
         launchLoading {
             withContext(ioDispatcher) {
                 try {
+                    val updated = if (subId.isEmpty()) {
+                        dataSource.getSubscriptions().filter { it.guid.isNotEmpty() }
+                    } else {
+                        listOfNotNull(
+                            dataSource.getSubscriptionItem(subId)
+                                ?.let { SubscriptionCache(subId, it) }
+                        )
+                    }
                     val result = if (subId.isEmpty()) {
                         dataSource.updateConfigViaSubAll()
                     } else {
-                        val item = dataSource.getSubscriptionItem(subId) ?: return@withContext
-                        dataSource.updateConfigViaSub(SubscriptionCache(subId, item))
+                        val single = updated.firstOrNull() ?: return@withContext
+                        dataSource.updateConfigViaSub(single)
                     }
-                    when {
+                    val summary = when {
                         result.successCount + result.failureCount + result.skipCount == 0 ->
-                            toast(R.string.title_update_subscription_no_subscription)
+                            dataSource.getString(R.string.title_update_subscription_no_subscription)
 
                         result.successCount > 0 && result.failureCount + result.skipCount == 0 ->
-                            toast(dataSource.getString(R.string.title_update_config_count, result.configCount))
+                            dataSource.getString(R.string.title_update_config_count, result.configCount)
 
                         else ->
-                            toast(dataSource.getString(R.string.title_update_subscription_result, result.configCount, result.successCount, result.failureCount, result.skipCount))
+                            dataSource.getString(R.string.title_update_subscription_result, result.configCount, result.successCount, result.failureCount, result.skipCount)
+                    }
+                    // An unparseable remarks filter is dropped rather than applied, which
+                    // otherwise looks like the subscription suddenly grew every node back.
+                    val brokenFilters = unusableFilterRemarks(updated)
+                    if (brokenFilters.isEmpty()) {
+                        toast(summary)
+                    } else {
+                        toastError(
+                            summary + "\n" + dataSource.getString(
+                                R.string.toast_subscription_filter_invalid,
+                                brokenFilters.joinToString(", ")
+                            )
+                        )
                     }
                     if (result.configCount > 0) {
                         setupGroupTab(forceRefresh = true)
@@ -881,3 +903,14 @@ class MainViewModel(
         }
     }
 }
+
+/**
+ * Remarks of the subscriptions whose filter is not a usable regular expression.
+ *
+ * Such a filter is discarded and the whole subscription is imported unfiltered, so the
+ * user has to be told which group it was.
+ */
+internal fun unusableFilterRemarks(subscriptions: List<SubscriptionCache>): List<String> =
+    subscriptions
+        .filter { SubscriptionFilter.isUnusable(it.subscription.filter) }
+        .map { it.subscription.remarks }

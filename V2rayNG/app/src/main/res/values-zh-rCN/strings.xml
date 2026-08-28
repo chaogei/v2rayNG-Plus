@@ -390,7 +390,15 @@
     <string name="sub_setting_request_headers">请求头（JSON 格式）</string>
     <string name="sub_setting_filter">别名正则过滤</string>
     <string name="sub_setting_enable">启用更新</string>
+    <string name="sub_filter_invalid">不是合法的正则表达式，将被忽略并导入全部节点</string>
     <string name="sub_auto_update">启用自动更新</string>
+    <string name="summary_sub_auto_update">按下面的间隔在后台更新。更新失败不会推进订阅列表里的「上次更新」时间，所以时间没变就说明上一次没成功</string>
+    <string name="sub_last_updated">上次更新：%1$s</string>
+    <string name="sub_never_updated">从未更新成功</string>
+    <string name="sub_auto_update_every">自动更新：每 %1$d 分钟</string>
+    <string name="sub_auto_update_off">自动更新已关闭</string>
+    <string name="toast_sub_update_nothing_enabled">请先打开「更新订阅」，否则不会拉取任何内容</string>
+    <string name="toast_subscription_filter_invalid">备注过滤不是合法正则，已不过滤导入：%1$s</string>
     <string name="sub_allow_insecure_url">允许不安全的 HTTP 地址</string>
     <string name="sub_setting_pre_profile">前置代理配置别名</string>
     <string name="sub_setting_next_profile">落地代理配置別名</string>

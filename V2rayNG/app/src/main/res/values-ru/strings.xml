@@ -390,7 +390,15 @@
     <string name="sub_setting_request_headers">Заголовки запроса (формат JSON)</string>
     <string name="sub_setting_filter">Фильтр названий (регулярное выражение)</string>
     <string name="sub_setting_enable">Включить обновление</string>
+    <string name="sub_filter_invalid">Не является корректным регулярным выражением, поэтому игнорируется и импортируются все профили</string>
     <string name="sub_auto_update">Использовать автообновление</string>
+    <string name="summary_sub_auto_update">Работает в фоне с интервалом ниже. Неудачная попытка не меняет «Последнее обновление» в списке подписок, поэтому старое время означает, что прошлый запуск не удался</string>
+    <string name="sub_last_updated">Последнее обновление: %1$s</string>
+    <string name="sub_never_updated">Ни разу не обновлялась успешно</string>
+    <string name="sub_auto_update_every">Автообновление каждые %1$d мин</string>
+    <string name="sub_auto_update_off">Автообновление выключено</string>
+    <string name="toast_sub_update_nothing_enabled">Сначала включите «Обновить подписку», иначе ничего не загружается</string>
+    <string name="toast_subscription_filter_invalid">Фильтр примечаний не является корректным регулярным выражением, импортировано без фильтра: %1$s</string>
     <string name="sub_allow_insecure_url">Разрешать незащищённые HTTP-адреса</string>
     <string name="sub_setting_pre_profile">Входной прокси</string>
     <string name="sub_setting_next_profile">Выходной прокси</string>

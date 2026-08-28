@@ -390,7 +390,15 @@
     <string name="sub_setting_request_headers">請求標頭（JSON 格式）</string>
     <string name="sub_setting_filter">備註篩選條件（正規表示式）</string>
     <string name="sub_setting_enable">啟用更新</string>
+    <string name="sub_filter_invalid">不是合法的正規表示式，將被忽略並匯入全部節點</string>
     <string name="sub_auto_update">啟用自動更新</string>
+    <string name="summary_sub_auto_update">依下方間隔在背景更新。更新失敗不會推進訂閱清單裡的「上次更新」時間，所以時間沒變就代表上一次沒成功</string>
+    <string name="sub_last_updated">上次更新：%1$s</string>
+    <string name="sub_never_updated">從未更新成功</string>
+    <string name="sub_auto_update_every">自動更新：每 %1$d 分鐘</string>
+    <string name="sub_auto_update_off">自動更新已關閉</string>
+    <string name="toast_sub_update_nothing_enabled">請先開啟「更新訂閱」，否則不會抓取任何內容</string>
+    <string name="toast_subscription_filter_invalid">備註過濾不是合法正規表示式，已不過濾匯入：%1$s</string>
     <string name="sub_allow_insecure_url">允許不安全的 HTTP 位址</string>
     <string name="sub_setting_pre_profile">前置代理設定檔别名</string>
     <string name="sub_setting_next_profile">落地代理設定檔別名</string>

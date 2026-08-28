@@ -390,7 +390,15 @@
     <string name="sub_setting_request_headers">Request Headers (JSON format)</string>
     <string name="sub_setting_filter">Remarks filter (regular expression)</string>
     <string name="sub_setting_enable">Enable update</string>
+    <string name="sub_filter_invalid">Not a valid regular expression, so it is ignored and every profile is imported</string>
     <string name="sub_auto_update">Enable automatic update</string>
+    <string name="summary_sub_auto_update">Runs in the background on the interval below. A failed run leaves "Last updated" in the subscription list unchanged, so a stale time means the last attempt did not succeed</string>
+    <string name="sub_last_updated">Last updated: %1$s</string>
+    <string name="sub_never_updated">Never updated successfully</string>
+    <string name="sub_auto_update_every">Auto update every %1$d min</string>
+    <string name="sub_auto_update_off">Auto update off</string>
+    <string name="toast_sub_update_nothing_enabled">Turn on "Update subscription" first, otherwise nothing is fetched</string>
+    <string name="toast_subscription_filter_invalid">Remarks filter is not a valid regular expression, imported unfiltered: %1$s</string>
     <string name="sub_allow_insecure_url">Allow insecure HTTP address</string>
     <string name="sub_setting_pre_profile">Entry proxy</string>
     <string name="sub_setting_next_profile">Exit proxy</string>

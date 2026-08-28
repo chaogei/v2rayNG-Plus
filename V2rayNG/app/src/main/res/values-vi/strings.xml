@@ -390,7 +390,15 @@
     <string name="sub_setting_request_headers">Tiêu đề yêu cầu (định dạng JSON)</string>
     <string name="sub_setting_filter">Bộ lọc biểu thức chính quy cho tên ghi chú</string>
     <string name="sub_setting_enable">Bật cập nhật</string>
+    <string name="sub_filter_invalid">Không phải biểu thức chính quy hợp lệ nên bị bỏ qua và nhập toàn bộ cấu hình</string>
     <string name="sub_auto_update">Bật tự động cập nhật</string>
+    <string name="summary_sub_auto_update">Chạy nền theo khoảng thời gian bên dưới. Lần chạy thất bại không làm thay đổi "Cập nhật lần cuối" trong danh sách đăng ký, nên thời gian cũ nghĩa là lần trước không thành công</string>
+    <string name="sub_last_updated">Cập nhật lần cuối: %1$s</string>
+    <string name="sub_never_updated">Chưa từng cập nhật thành công</string>
+    <string name="sub_auto_update_every">Tự động cập nhật mỗi %1$d phút</string>
+    <string name="sub_auto_update_off">Tự động cập nhật đã tắt</string>
+    <string name="toast_sub_update_nothing_enabled">Hãy bật "Cập nhật đăng ký" trước, nếu không sẽ không tải gì cả</string>
+    <string name="toast_subscription_filter_invalid">Bộ lọc ghi chú không phải biểu thức chính quy hợp lệ, đã nhập không lọc: %1$s</string>
     <string name="sub_allow_insecure_url">Cho phép địa chỉ HTTP không an toàn</string>
     <string name="sub_setting_pre_profile">Proxy đầu vào</string>
     <string name="sub_setting_next_profile">Proxy đầu ra</string>
