@@ -39,7 +39,7 @@ interface MainDataSource : Closeable {
 
     fun removeServer(guid: String)
     fun removeAllServer(): Int
-    fun removeInvalidServerByGuid(guid: String): Int
+    fun removeInvalidServersAmong(guids: List<String>): Int
     fun removeInvalidServersInGroup(groupId: String): Int
 
     fun clearAllTestDelayResults(guids: List<String>)

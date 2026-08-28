@@ -51,7 +51,9 @@ object Utils {
     fun getClipboard(context: Context): String {
         return try {
             val cmb = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-            cmb.primaryClip?.getItemAt(0)?.text.toString()
+            // Without the safe call the whole expression is (null).toString(), so an empty
+            // clipboard handed the importer the literal text "null".
+            cmb.primaryClip?.getItemAt(0)?.text?.toString().orEmpty()
         } catch (e: Exception) {
             LogUtil.e(AppConfig.TAG, "Failed to get clipboard content", e)
             ""

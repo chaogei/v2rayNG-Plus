@@ -224,7 +224,10 @@ class MainActivity : HelperBaseComponentActivity() {
             val text = Utils.getClipboard(this)
             mainViewModel.onAction(MainAction.ImportBatchConfig(text))
         } catch (e: Exception) {
+            // Reading the clipboard can be refused outright; without this the menu entry
+            // looks like a button that does nothing.
             LogUtil.e(AppConfig.TAG, "Failed to import config from clipboard", e)
+            toastError(R.string.toast_failure)
         }
     }
 
@@ -232,11 +235,19 @@ class MainActivity : HelperBaseComponentActivity() {
         launchFileChooser { uri ->
             if (uri == null) return@launchFileChooser
             try {
-                contentResolver.openInputStream(uri)?.bufferedReader()?.use { reader ->
+                val stream = contentResolver.openInputStream(uri)
+                if (stream == null) {
+                    // An unreadable provider used to end the flow with no feedback at all.
+                    LogUtil.e(AppConfig.TAG, "Failed to open the selected config file")
+                    toastError(R.string.toast_failure)
+                    return@launchFileChooser
+                }
+                stream.bufferedReader().use { reader ->
                     mainViewModel.onAction(MainAction.ImportBatchConfig(reader.readText()))
                 }
             } catch (e: Exception) {
                 LogUtil.e(AppConfig.TAG, "Failed to read content from URI", e)
+                toastError(R.string.toast_failure)
             }
         }
     }

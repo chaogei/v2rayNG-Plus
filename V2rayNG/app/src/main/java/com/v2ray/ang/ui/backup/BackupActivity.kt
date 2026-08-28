@@ -23,7 +23,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
 import androidx.lifecycle.Lifecycle
@@ -316,7 +318,10 @@ private fun WebDavInputDialog(
         InputField(
             label = stringResource(R.string.title_webdav_pass),
             value = password,
-            visualTransformation = VisualTransformation.None
+            // Every other credential field in the app is masked; this one showed the
+            // WebDAV password in clear text to anyone looking at the screen.
+            visualTransformation = PasswordVisualTransformation(),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password)
         ),
         InputField(
             label = stringResource(R.string.title_webdav_remote_path),

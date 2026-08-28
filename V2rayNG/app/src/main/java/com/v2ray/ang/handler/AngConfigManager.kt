@@ -11,7 +11,6 @@ import com.v2ray.ang.dto.entities.ProfileItem
 import com.v2ray.ang.dto.entities.SubscriptionCache
 import com.v2ray.ang.dto.entities.SubscriptionItem
 import com.v2ray.ang.enums.EConfigType
-import com.v2ray.ang.extension.isNotNullEmpty
 import com.v2ray.ang.fmt.CustomFmt
 import com.v2ray.ang.fmt.Hysteria2Fmt
 import com.v2ray.ang.fmt.ShadowsocksFmt
@@ -23,6 +22,7 @@ import com.v2ray.ang.fmt.VmessFmt
 import com.v2ray.ang.fmt.WireguardFmt
 import com.v2ray.ang.util.HttpUtil
 import com.v2ray.ang.util.JsonUtil
+import com.v2ray.ang.util.LogRedaction
 import com.v2ray.ang.util.LogUtil
 import com.v2ray.ang.util.QRCodeDecoder
 import com.v2ray.ang.util.Utils
@@ -246,6 +246,13 @@ object AngConfigManager {
                 return 0
             }
             val subItem = MmkvManager.decodeSubscription(subid)
+            val remarksFilter = SubscriptionFilter.compile(subItem?.filter)
+            if (SubscriptionFilter.isUnusable(subItem?.filter)) {
+                LogUtil.w(
+                    AppConfig.TAG,
+                    "Subscription $subid has an invalid remarks filter; importing unfiltered"
+                )
+            }
 
             // Parse all configs first (no I/O during parsing)
             val configs = mutableListOf<ProfileItem>()
@@ -253,7 +260,7 @@ object AngConfigManager {
                 .distinct()
                 .reversed()
                 .forEach {
-                    val config = parseConfig(it, subid, subItem)
+                    val config = parseConfig(it, subid, remarksFilter)
                     if (config != null) {
                         configs.add(config)
                     }
@@ -389,13 +396,13 @@ object AngConfigManager {
      *
      * @param str The configuration string.
      * @param subid The subscription ID.
-     * @param subItem The subscription item.
+     * @param remarksFilter The compiled subscription remarks filter, or null to keep everything.
      * @return The parsed ProfileItem or null if parsing fails or filtered out.
      */
     private fun parseConfig(
         str: String?,
         subid: String,
-        subItem: SubscriptionItem?
+        remarksFilter: Regex?
     ): ProfileItem? {
         try {
             if (str == null || TextUtils.isEmpty(str)) {
@@ -410,11 +417,8 @@ object AngConfigManager {
                 return null
             }
 
-            // Apply filter
-            if (subItem?.filter.isNotNullEmpty() && config.remarks.isNotNullEmpty()) {
-                val matched = Regex(pattern = subItem?.filter.orEmpty())
-                    .containsMatchIn(input = config.remarks)
-                if (!matched) return null
+            if (!SubscriptionFilter.accepts(remarksFilter, config.remarks)) {
+                return null
             }
 
             config.subscriptionId = subid
@@ -480,7 +484,7 @@ object AngConfigManager {
                     return SubscriptionUpdateResult(failureCount = 1)
                 }
             }
-            LogUtil.i(AppConfig.TAG, url)
+            LogUtil.i(AppConfig.TAG, "Updating subscription from ${LogRedaction.url(url)}")
             val userAgent = it.subscription.userAgent
             val requestHeaders = it.subscription.requestHeaders
             val (proxyUsername, proxyPassword) = SettingsManager.getLocalAuthCredentials() ?: (null to null)

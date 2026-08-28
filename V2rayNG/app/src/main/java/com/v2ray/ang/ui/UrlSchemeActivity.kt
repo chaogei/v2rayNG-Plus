@@ -12,6 +12,7 @@ import com.v2ray.ang.extension.toastError
 import com.v2ray.ang.handler.AngConfigManager
 import com.v2ray.ang.ui.base.BaseComponentActivity
 import com.v2ray.ang.ui.main.MainActivity
+import com.v2ray.ang.util.LogRedaction
 import com.v2ray.ang.util.LogUtil
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -66,7 +67,9 @@ class UrlSchemeActivity : BaseComponentActivity() {
         if (uriString.isNullOrEmpty()) {
             return
         }
-        LogUtil.i(AppConfig.TAG, uriString)
+        // The incoming link is a share link or a subscription URL, so it carries the node
+        // password or the subscription token in its path, query or fragment.
+        LogUtil.i(AppConfig.TAG, "URL scheme received: ${LogRedaction.url(uriString)}")
 
         var decodedUrl = URLDecoder.decode(uriString, "UTF-8")
         val uri = Uri.parse(decodedUrl)
@@ -74,7 +77,6 @@ class UrlSchemeActivity : BaseComponentActivity() {
             if (uri.fragment.isNullOrEmpty() && !fragment.isNullOrEmpty()) {
                 decodedUrl += "#${fragment}"
             }
-            LogUtil.i(AppConfig.TAG, decodedUrl)
             lifecycleScope.launch(Dispatchers.IO) {
                 val (count, countSub) = AngConfigManager.importBatchConfig(decodedUrl, "", false)
                 withContext(Dispatchers.Main) {

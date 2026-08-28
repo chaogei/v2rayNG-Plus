@@ -3,6 +3,7 @@ package com.v2ray.ang.service
 import android.content.Context
 import android.os.ParcelFileDescriptor
 import com.v2ray.ang.AppConfig
+import com.v2ray.ang.BuildConfig
 import com.v2ray.ang.contracts.Tun2SocksControl
 import com.v2ray.ang.handler.MmkvManager
 import com.v2ray.ang.handler.SettingsManager
@@ -51,7 +52,12 @@ class TProxyService(
             writeText(configContent)
         }
 //        LogUtil.i(AppConfig.TAG, "Config file created: ${configFile.absolutePath}")
-        LogUtil.d(AppConfig.TAG, "HevSocks5Tunnel Config content:\n$configContent")
+        // The tunnel config embeds the local SOCKS username and password. The log level is
+        // a user setting and the app can share its own logcat, so this stays out of
+        // shippable builds.
+        if (BuildConfig.DEBUG) {
+            LogUtil.d(AppConfig.TAG, "HevSocks5Tunnel Config content:\n$configContent")
+        }
 
         try {
 //            LogUtil.i(AppConfig.TAG, "TProxyStartService...")

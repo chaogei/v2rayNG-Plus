@@ -13,6 +13,7 @@ import android.os.SystemClock
 import android.system.OsConstants
 import androidx.core.content.ContextCompat
 import com.v2ray.ang.AppConfig
+import com.v2ray.ang.BuildConfig
 import com.v2ray.ang.contracts.IDialerService
 import com.v2ray.ang.contracts.ServiceControl
 import com.v2ray.ang.dto.ConnectionTestResult
@@ -195,7 +196,12 @@ object CoreServiceManager {
 
         LogUtil.i(AppConfig.TAG, "StartCore-Manager: Starting core loop for ${config?.remarks ?: "local proxy (direct)"}")
         val result = CoreConfigManager.getV2rayConfig(service, guid)
-        LogUtil.d(AppConfig.TAG, result.content)
+        // The generated config carries the node credentials and the local inbound
+        // username/password. The log level is a user setting and the app can share its own
+        // logcat, so the full config only goes to debug builds.
+        if (BuildConfig.DEBUG) {
+            LogUtil.d(AppConfig.TAG, result.content)
+        }
         if (!result.status) {
             error(result.errorMessage.ifBlank { "Failed to get V2Ray config" })
         }

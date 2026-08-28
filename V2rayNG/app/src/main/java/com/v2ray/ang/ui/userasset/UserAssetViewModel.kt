@@ -126,11 +126,20 @@ class UserAssetViewModel(application: Application) : BaseViewModel(application) 
                     targetTemp
                 )
             ) {
-                targetTemp.renameTo(target)
-                return true
+                // A rename that fails leaves the old geo file in place, so reporting
+                // success here would claim an update that never landed.
+                if (targetTemp.renameTo(target)) {
+                    return true
+                }
+                LogUtil.e(AppConfig.TAG, "Failed to publish downloaded geo file: ${item.remarks}")
             }
         } catch (e: Exception) {
             LogUtil.e(AppConfig.TAG, "Failed to download geo file: ${item.remarks}", e)
+        } finally {
+            // Every failed attempt used to leave a *_temp file in the asset directory.
+            if (targetTemp.exists()) {
+                targetTemp.delete()
+            }
         }
         return false
     }
@@ -139,5 +148,23 @@ class UserAssetViewModel(application: Application) : BaseViewModel(application) 
         val successCount: Int,
         val failureCount: Int,
         val failedAssets: List<String>
-    )
+    ) {
+        /**
+         * What the user has to be told. A partial run used to report only the successes,
+         * which read as "everything is up to date" while a geo file was still stale.
+         */
+        internal fun outcome(): GeoDownloadOutcome = when {
+            failedAssets.isEmpty() && successCount == 0 -> GeoDownloadOutcome.NOTHING_ATTEMPTED
+            failedAssets.isEmpty() -> GeoDownloadOutcome.ALL_SUCCEEDED
+            successCount == 0 -> GeoDownloadOutcome.ALL_FAILED
+            else -> GeoDownloadOutcome.PARTIALLY_FAILED
+        }
+    }
+}
+
+internal enum class GeoDownloadOutcome {
+    NOTHING_ATTEMPTED,
+    ALL_SUCCEEDED,
+    PARTIALLY_FAILED,
+    ALL_FAILED,
 }
