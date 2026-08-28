@@ -13,6 +13,7 @@ import com.v2ray.ang.R
 import com.v2ray.ang.core.CoreServiceManager
 import com.v2ray.ang.core.LauncherManager
 import com.v2ray.ang.handler.AppLocaleManager
+import com.v2ray.ang.handler.NotificationTitlePolicy
 import com.v2ray.ang.helper.MessageHelper
 import com.v2ray.ang.util.LogUtil
 import com.v2ray.ang.util.Utils
@@ -35,8 +36,10 @@ class QSTileService : TileService() {
             qsTile?.label = getString(R.string.app_name)
         } else if (state == Tile.STATE_ACTIVE) {
             qsTile?.state = Tile.STATE_ACTIVE
-            qsTile?.label = CoreServiceManager.getRunningServerName()
-                .ifEmpty { getString(R.string.title_local_proxy_direct) }
+            qsTile?.label = NotificationTitlePolicy.title(
+                CoreServiceManager.getRunningServerName(),
+                getString(R.string.title_local_proxy_direct)
+            )
         }
 
         qsTile?.updateTile()
@@ -80,14 +83,17 @@ class QSTileService : TileService() {
      */
     override fun onClick() {
         super.onClick()
-        when (qsTile.state) {
-            Tile.STATE_INACTIVE -> {
-                LauncherManager.startServiceFromToggle(this)
-            }
-
-            Tile.STATE_ACTIVE -> {
-                LauncherManager.stopService(this)
-            }
+        // The tile can be left showing "active" after the daemon process is killed, because
+        // nothing broadcasts that. Acting on the core's real state instead of the painted one
+        // keeps a tap from starting a second run or stopping a service that is already gone,
+        // and the repaint below reports what actually happened.
+        if (CoreServiceManager.isRunning()) {
+            LauncherManager.stopService(this)
+            setState(Tile.STATE_INACTIVE)
+        } else if (!LauncherManager.startServiceFromToggle(this)) {
+            // A successful start is confirmed by MSG_STATE_START_SUCCESS, which also carries the
+            // name to label the tile with; only the refusal has to be painted here.
+            setState(Tile.STATE_INACTIVE)
         }
     }
 

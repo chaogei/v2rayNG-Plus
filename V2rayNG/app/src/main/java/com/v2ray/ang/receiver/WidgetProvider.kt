@@ -11,6 +11,7 @@ import com.v2ray.ang.AppConfig
 import com.v2ray.ang.R
 import com.v2ray.ang.core.CoreServiceManager
 import com.v2ray.ang.core.LauncherManager
+import com.v2ray.ang.handler.NotificationTitlePolicy
 
 class WidgetProvider : AppWidgetProvider() {
     /**
@@ -64,8 +65,10 @@ class WidgetProvider : AppWidgetProvider() {
 
     private fun accessibilityLabel(context: Context, isRunning: Boolean): String {
         if (!isRunning) return context.getString(R.string.acc_widget_stopped)
-        val name = CoreServiceManager.getRunningServerName()
-            .ifEmpty { context.getString(R.string.title_local_proxy_direct) }
+        val name = NotificationTitlePolicy.title(
+            CoreServiceManager.getRunningServerName(),
+            context.getString(R.string.title_local_proxy_direct)
+        )
         return context.getString(R.string.acc_widget_running, name)
     }
 
