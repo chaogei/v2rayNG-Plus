@@ -181,6 +181,30 @@
             android:process=":RunSoLibV2RayDaemon"
             android:theme="@style/AppThemeDayNight.NoActionBar.Translucent" />
 
+        <!--
+            External control for automation apps. Exported on purpose, but it only ever reads
+            the action: the three below are the whole contract, anything else is refused, and
+            no component, data URI or extra from the caller is acted on.
+            Runs in the daemon process so it can see whether the core is actually running.
+        -->
+        <activity
+            android:name=".ui.ExternalControlActivity"
+            android:excludeFromRecents="true"
+            android:exported="true"
+            android:label="@string/external_control_label"
+            android:noHistory="true"
+            android:process=":RunSoLibV2RayDaemon"
+            android:taskAffinity=""
+            android:theme="@android:style/Theme.Translucent.NoTitleBar">
+            <intent-filter>
+                <action android:name="com.v2ray.ang.action.TOGGLE" />
+                <action android:name="com.v2ray.ang.action.START" />
+                <action android:name="com.v2ray.ang.action.STOP" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity>
+
         <activity
             android:name=".ui.UrlSchemeActivity"
             android:exported="true">

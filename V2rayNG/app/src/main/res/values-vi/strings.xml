@@ -606,5 +606,11 @@
     <string name="tasker_blurb_stop">Dừng %1$s</string>
     <string name="connection_test_empty_message">không có thông tin chi tiết</string>
     <string name="value_unknown">không xác định</string>
+    <string name="external_control_label">Điều khiển bên ngoài</string>
+    <string name="external_control_already_running">Dịch vụ đang chạy</string>
+    <string name="external_control_already_stopped">Dịch vụ không chạy</string>
+    <string name="external_control_unknown_action">Lệnh điều khiển bên ngoài không được hỗ trợ</string>
+    <string name="toast_url_scheme_missing_url">Liên kết thiếu tham số url</string>
+    <string name="toast_url_scheme_unsupported">Liên kết không được hỗ trợ</string>
 
 </resources>
