@@ -59,7 +59,10 @@ class MainActivity : HelperBaseComponentActivity() {
 
     private val requestVpnPermission =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+            // Declining the system consent dialog left the FAB idle with no explanation,
+            // so the app looked broken rather than un-permitted.
             if (it.resultCode == RESULT_OK) startV2Ray()
+            else toastError(R.string.toast_vpn_permission_denied)
         }
 
     private val profileEditorLauncher =
@@ -171,8 +174,25 @@ class MainActivity : HelperBaseComponentActivity() {
             startV2Ray()
             return
         }
-        val intent = VpnService.prepare(this)
-        if (intent == null) startV2Ray() else requestVpnPermission.launch(intent)
+        // Both calls can fail on devices where the VPN consent activity is unavailable
+        // (managed profiles, stripped ROMs). Uncaught that was a crash on the FAB.
+        val intent = try {
+            VpnService.prepare(this)
+        } catch (e: Exception) {
+            LogUtil.e(AppConfig.TAG, "Failed to prepare the VPN service", e)
+            toastError(R.string.toast_vpn_permission_unavailable)
+            return
+        }
+        if (intent == null) {
+            startV2Ray()
+            return
+        }
+        try {
+            requestVpnPermission.launch(intent)
+        } catch (e: Exception) {
+            LogUtil.e(AppConfig.TAG, "Failed to launch the VPN consent dialog", e)
+            toastError(R.string.toast_vpn_permission_unavailable)
+        }
     }
 
     private fun handleLayoutTestClick() {

@@ -26,7 +26,7 @@ object LauncherManager {
             startContextService(context)
         } catch (e: Exception) {
             LogUtil.e(AppConfig.TAG, "LauncherManager: ${e.message}", e)
-            context.toast(e.message ?: e.javaClass.simpleName)
+            context.toastError(e.message ?: e.javaClass.simpleName)
             return false
         }
         return true
@@ -44,7 +44,7 @@ object LauncherManager {
             startContextService(context)
         } catch (e: Exception) {
             LogUtil.e(AppConfig.TAG, "LauncherManager: ${e.message}", e)
-            context.toast(e.message ?: e.javaClass.simpleName)
+            context.toastError(e.message ?: e.javaClass.simpleName)
         }
     }
 
@@ -73,6 +73,7 @@ object LauncherManager {
         // Without a profile the core still starts: the local inbounds stay up and traffic
         // leaves through freedom, so there is nothing to validate here.
         val directOnly = SettingsManager.isLocalProxyDirectOnly()
+        var insecureProfile = false
         if (!directOnly) {
             val guid = MmkvManager.getSelectServer().orEmpty()
             val config = MmkvManager.decodeServerConfig(guid)
@@ -89,10 +90,18 @@ object LauncherManager {
                 error(context.getString(R.string.toast_config_file_invalid))
             }
 
-            if (config.insecure == true && config.pinnedCA256.isNullOrEmpty()) {
-                context.toastError(R.string.toast_allow_insecure_deprecated)
+            insecureProfile = config.insecure == true && config.pinnedCA256.isNullOrEmpty()
+            if (insecureProfile) {
                 Utils.setClipboard(context, context.getString(R.string.toast_allow_insecure_deprecated))
             }
+        }
+
+        // Checked before anything is announced or persisted: a missing root shell used to
+        // print "starting service" and flip the run mode to proxy-only first, then fail.
+        val isRootMode = SettingsManager.isRootMode()
+        if (isRootMode && !RootManager.isRootAvailable()) {
+            LogUtil.e(AppConfig.TAG, "LauncherManager: root mode requires root but none available")
+            error(context.getString(R.string.toast_root_required))
         }
 
         // consumeDirectSwitchNotice covers the mode switch that already happened when
@@ -104,21 +113,22 @@ object LauncherManager {
             false
         }
 
-        val startupMessages = StartupToastPolicy.startMessages(
-            proxySharing = MmkvManager.decodeSettingsBool(AppConfig.PREF_PROXY_SHARING),
-            directOnly = directOnly,
-            switchedToProxyOnly = switchedToProxyOnly,
-        )
-        if (startupMessages.isNotEmpty()) {
-            // One combined toast: the snackbar host replaces (not queues) messages, so
-            // separate toasts here would leave only the last one visible.
-            context.toast(startupMessages.joinToString("\n") { context.getString(it) })
+        // The insecure-profile warning joins the same combined line. Fired on its own it
+        // was posted a few statements before the start notice, and the snackbar host
+        // replaces instead of queueing, so nobody ever saw it.
+        val startupMessages = buildList {
+            if (insecureProfile) add(R.string.toast_allow_insecure_deprecated)
+            addAll(
+                StartupToastPolicy.startMessages(
+                    proxySharing = MmkvManager.decodeSettingsBool(AppConfig.PREF_PROXY_SHARING),
+                    directOnly = directOnly,
+                    switchedToProxyOnly = switchedToProxyOnly,
+                )
+            )
         }
-
-        val isRootMode = SettingsManager.isRootMode()
-        if (isRootMode && !RootManager.isRootAvailable()) {
-            LogUtil.e(AppConfig.TAG, "LauncherManager: root mode requires root but none available")
-            error(context.getString(R.string.toast_root_required))
+        if (startupMessages.isNotEmpty()) {
+            val text = startupMessages.joinToString("\n") { context.getString(it) }
+            if (insecureProfile) context.toastError(text) else context.toast(text)
         }
 
         val intent = if (isRootMode) {

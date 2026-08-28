@@ -31,6 +31,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.v2ray.ang.AppConfig
 import com.v2ray.ang.AppConfig.VPN
 import com.v2ray.ang.R
+import com.v2ray.ang.core.RunModeLabels
 import com.v2ray.ang.enums.EConfigType
 import com.v2ray.ang.handler.AppLocaleManager
 import com.v2ray.ang.handler.MmkvManager
@@ -822,7 +823,9 @@ fun SettingsScreen(
                     entries = modeEntries,
                     values = modeValues,
                     selectedValue = mode,
-                    extraSummary = stringResource(R.string.summary_pref_mode_local_direct),
+                    extraSummary = stringResource(
+                        RunModeLabels.modeSummary(rootMode = enableRootMode, vpnMode = isVpn)
+                    ) + "\n" + stringResource(R.string.summary_pref_mode_local_direct),
                     onSelected = { newMode ->
                         if (newMode == VPN && mode != VPN && SettingsManager.isLocalProxyDirectOnly()) {
                             // VPN + direct would tun the whole device straight out; make the
