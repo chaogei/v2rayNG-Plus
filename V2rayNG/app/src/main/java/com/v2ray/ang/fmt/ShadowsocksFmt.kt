@@ -53,7 +53,7 @@ object ShadowsocksFmt : FmtBase() {
             if (queryParam["plugin"]?.contains("obfs=http") == true) {
                 val queryPairs = HashMap<String, String>()
                 for (pair in queryParam["plugin"]?.split(";") ?: listOf()) {
-                    val idx = pair.split("=")
+                    val idx = pair.split("=", limit = 2)
                     if (idx.count() == 2) {
                         queryPairs.put(idx.first(), idx.last())
                     }

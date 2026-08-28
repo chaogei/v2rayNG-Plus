@@ -36,8 +36,9 @@ object Hysteria2Fmt : FmtBase() {
             config.security = queryParam["security"] ?: AppConfig.TLS
             config.obfsPassword = queryParam["obfs-password"]
             config.portHopping = queryParam["mport"]
-            config.pinnedCA256 = queryParam["pinSHA256"]
-
+            // Hysteria2 links spell the pin as pinSHA256, the shared query reader as pcs.
+            // Overwriting unconditionally dropped the pin whenever a link used the latter.
+            config.pinnedCA256 = queryParam["pinSHA256"] ?: config.pinnedCA256
         }
 
         return config
