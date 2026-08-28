@@ -103,6 +103,32 @@ object MmkvManager {
         return mainStorage.encode(serverListKey(subscriptionId), JsonUtil.toJson(serverList))
     }
 
+    private fun persistEmptyServerListForKey(key: String): Boolean {
+        return mainStorage.encode(key, JsonUtil.toJson(emptyList<String>()))
+    }
+
+    /**
+     * Drops one group and the payloads it owned.
+     *
+     * @param dropIndex Removes the group index key outright instead of emptying it, for
+     * groups that are going away with their subscription.
+     */
+    private fun removeServerGroup(subscriptionId: String?, dropIndex: Boolean) {
+        withProfileIndexLock {
+            val subId = getSubscriptionId(subscriptionId)
+            val serverList = decodeServerList(subId)
+            if (ProfileIndexMaintenance.selectionRemoved(getSelectServer(), serverList)) {
+                mainStorage.remove(KEY_SELECTED_SERVER)
+            }
+            removeProfilePayloads(serverList)
+            if (dropIndex) {
+                mainStorage.remove(serverListKey(subId))
+            } else {
+                persistServerList(emptyList(), subId)
+            }
+        }
+    }
+
     private fun serverListKey(subscriptionId: String): String {
         return "$KEY_SUB_SERVER_PREFIX${getSubscriptionId(subscriptionId)}"
     }
@@ -391,23 +417,24 @@ object MmkvManager {
             return
         }
 
-        // Get config to determine which subscription to update
-        val config = decodeServerConfig(guid)
-        val subId = getSubscriptionId(config?.subscriptionId)
+        // The daemon process removes invalid profiles while the UI process edits the same
+        // group index, so every index mutation has to hold the cross-process lock.
+        withProfileIndexLock {
+            val config = decodeServerConfig(guid)
+            val subId = getSubscriptionId(config?.subscriptionId)
 
-        // Remove from appropriate server list
-        val serverList = decodeServerList(subId)
-        serverList.remove(guid)
-        encodeServerList(serverList, subId)
+            val serverList = decodeServerList(subId)
+            if (serverList.remove(guid)) {
+                persistServerList(serverList, subId)
+            }
 
-        // Clean up storage (raw payloads included, or CUSTOM configs leak forever:
-        // the orphan cleaner only scans profile payload keys, never raw ones)
-        if (getSelectServer() == guid) {
-            mainStorage.remove(KEY_SELECTED_SERVER)
+            if (ProfileIndexMaintenance.selectionRemoved(getSelectServer(), setOf(guid))) {
+                mainStorage.remove(KEY_SELECTED_SERVER)
+            }
+            // Raw payloads included, or CUSTOM configs leak forever: the orphan cleaner
+            // only scans profile payload keys, never raw ones.
+            removeProfilePayloads(listOf(guid))
         }
-        profileFullStorage.remove(guid)
-        serverAffStorage.remove(guid)
-        serverRawStorage.remove(guid)
     }
 
     /**
@@ -416,21 +443,7 @@ object MmkvManager {
      * @param subscriptionId The subscription ID.
      */
     fun removeServerViaSubid(subscriptionId: String?) {
-        val subId = getSubscriptionId(subscriptionId)
-        val serverList = decodeServerList(subId)
-
-        // Remove all servers in the list
-        serverList.forEach { guid ->
-            if (getSelectServer() == guid) {
-                mainStorage.remove(KEY_SELECTED_SERVER)
-            }
-            profileFullStorage.remove(guid)
-            serverAffStorage.remove(guid)
-            serverRawStorage.remove(guid)
-        }
-
-        serverList.clear()
-        encodeServerList(serverList, subId)
+        removeServerGroup(subscriptionId, dropIndex = false)
     }
 
     /**
@@ -441,20 +454,18 @@ object MmkvManager {
      */
     fun removeServers(guids: List<String>, subscriptionId: String) {
         if (guids.isEmpty()) return
-        val subId = getSubscriptionId(subscriptionId)
-        val serverList = decodeServerList(subId)
-        if (serverList.removeAll(guids)) {
-            encodeServerList(serverList, subId)
-        }
+        val removed = guids.toSet()
+        withProfileIndexLock {
+            val subId = getSubscriptionId(subscriptionId)
+            val serverList = decodeServerList(subId)
+            if (serverList.removeAll(removed)) {
+                persistServerList(serverList, subId)
+            }
 
-        val selectedServer = getSelectServer()
-        guids.forEach { guid ->
-            if (selectedServer == guid) {
+            if (ProfileIndexMaintenance.selectionRemoved(getSelectServer(), removed)) {
                 mainStorage.remove(KEY_SELECTED_SERVER)
             }
-            profileFullStorage.remove(guid)
-            serverAffStorage.remove(guid)
-            serverRawStorage.remove(guid)
+            removeProfilePayloads(removed)
         }
     }
 
@@ -509,16 +520,20 @@ object MmkvManager {
      *
      * @return The number of server configurations removed.
      */
-    fun removeAllServer(): Int {
+    fun removeAllServer(): Int = withProfileIndexLock {
         val count = profileFullStorage.allKeys()?.count() ?: 0
         profileFullStorage.clearAll()
         serverAffStorage.clearAll()
         serverRawStorage.clearAll()
 
-        decodeSubscriptions().forEach { sub ->
-            encodeServerList(mutableListOf(), sub.guid)
-        }
-        return count
+        // Nothing survives to stay selected. Keeping the pointer leaves the main screen
+        // marking a deleted node and makes the next start fail on an unresolvable GUID.
+        mainStorage.remove(KEY_SELECTED_SERVER)
+        // Empty every group index, not just the ones a subscription still owns: an index
+        // orphaned by a deleted subscription would keep listing gone payloads.
+        ProfileIndexMaintenance.groupIndexKeys(mainStorage.allKeys(), KEY_SUB_SERVER_PREFIX)
+            .forEach { key -> persistEmptyServerListForKey(key) }
+        count
     }
 
     /**
@@ -671,7 +686,9 @@ object MmkvManager {
         subsList.remove(subid)
         encodeSubsList(subsList)
 
-        removeServerViaSubid(subid)
+        // Drop the group index with the group. Emptying it instead left one dead
+        // SUB_SERVERS_* key per deleted subscription behind forever.
+        removeServerGroup(subid, dropIndex = true)
     }
 
     /**
