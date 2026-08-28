@@ -173,7 +173,7 @@
     <string name="title_pref_per_app_proxy">Прокси для выбранных приложений</string>
     <string name="summary_pref_per_app_proxy">Основной: выбранное приложение соединяется через прокси, не выбранное — напрямую;\nРежим обхода: выбранное приложение соединяется напрямую, не выбранное — через прокси.\nВ меню можно автоматически выбрать приложения, которые должны использовать прокси.</string>
     <string name="title_pref_is_booted">Автоподключение при запуске</string>
-    <string name="summary_pref_is_booted">Автоматически подключаться к выбранному серверу при запуске приложения (может оказаться неудачным)</string>
+    <string name="summary_pref_is_booted">Автозапуск при загрузке: с выбранным узлом подключается к нему, без узла запускается как «Локальный прокси · напрямую». Некоторые прошивки этому мешают.</string>
 
 
     <string name="subscription_updater_job_tips">Задача будет выполняться в фоновом режиме, информация о ходе выполнения будет отображаться в уведомлении.</string>
@@ -574,6 +574,8 @@
     <string name="acc_add_rule">Добавить правило маршрутизации</string>
     <string name="acc_start">Запустить службу</string>
     <string name="acc_stop">Остановить службу</string>
+    <string name="acc_widget_running">Подключено через %1$s. Нажмите, чтобы остановить.</string>
+    <string name="acc_widget_stopped">Не подключено. Нажмите, чтобы запустить.</string>
     <string name="acc_back">Назад</string>
     <string name="acc_search">Поиск</string>
     <string name="acc_add">Добавить профиль</string>

@@ -256,6 +256,42 @@ class ShadowsocksFmtTest {
         assertEquals("pass:word:with:colons", result?.password)
     }
 
+    // ==================== SIP002 plugin Tests ====================
+
+    /**
+     * The plugin value carries its own '=' separated options. Splitting the
+     * query on every '=' truncated it to "obfs-local;obfs", so the obfs block
+     * below never ran and the profile came out as plain TCP.
+     */
+    @Test
+    fun test_parseSip002_obfsHttpPluginIsApplied() {
+        val base64UserInfo = JavaBase64.getUrlEncoder().withoutPadding()
+            .encodeToString("aes-256-gcm:pw".toByteArray())
+        val ssUrl = "${SS_SCHEME}${base64UserInfo}@example.com:8388" +
+            "?plugin=obfs-local;obfs=http;obfs-host=cloud.example.com;path=/v2#Obfs"
+
+        val result = ShadowsocksFmt.parseSip002(ssUrl)
+
+        assertNotNull(result)
+        assertEquals("tcp", result?.network)
+        assertEquals("http", result?.headerType)
+        assertEquals("cloud.example.com", result?.host)
+        assertEquals("/v2", result?.path)
+    }
+
+    @Test
+    fun test_parseSip002_unrelatedPluginLeavesTransportAlone() {
+        val base64UserInfo = JavaBase64.getUrlEncoder().withoutPadding()
+            .encodeToString("aes-256-gcm:pw".toByteArray())
+        val ssUrl = "${SS_SCHEME}${base64UserInfo}@example.com:8388" +
+            "?plugin=v2ray-plugin;tls;host=example.com#Other"
+
+        val result = ShadowsocksFmt.parseSip002(ssUrl)
+
+        assertNotNull(result)
+        assertNull(result?.headerType)
+    }
+
     // ==================== toUri Tests ====================
 
     @Test

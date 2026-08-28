@@ -14,10 +14,15 @@ name: Build APK
 # run numbers too, so releases anchored on it would skip numbers.
 #   Release (push / dispatch): N = highest N in existing v2.3.5.N-plus tags + 1
 #                              (no tags -> N = 1)
-#                              versionCode = 746 + N, versionName = 2.3.5.<N>-plus,
-#                              release tag = v<versionName>
-#   PR build (never released): versionCode = 746 + last released N,
+#                              versionCode = 746 + N + OFFSET, versionName =
+#                              2.3.5.<N>-plus, release tag = v<versionName>
+#   PR build (never released): versionCode = 746 + last released N + OFFSET,
 #                              versionName = 2.3.5.<last N>-pr.<sha>-plus
+#   OFFSET                     number of "-plus" release tags outside the
+#                              v2.3.5.N-plus line (i.e. manual release_tag
+#                              inputs). Those consumed a versionCode without
+#                              advancing N, and two releases sharing a code
+#                              cannot upgrade each other on device.
 # Example: with v2.3.5.3-plus released, the next master push is always
 # v2.3.5.4-plus / versionCode 750, no matter how many PRs ran in between.
 # The in-app updater compares versions with VersionUtil, which strips everything
@@ -38,7 +43,7 @@ on:
   workflow_dispatch:
     inputs:
       release_tag:
-        description: 'Explicit release tag (e.g. v2.4.0-plus). Empty = computed from run number.'
+        description: 'Explicit release tag (e.g. v2.4.0-plus). Empty = counted up from the existing v2.3.5.N-plus tags.'
         required: false
         type: string
   push:
@@ -70,10 +75,14 @@ jobs:
         # brings them in, this simply keeps that guaranteed if the depth changes.
         fetch-tags: 'true'
 
+    # A wrong version is only noticed once a release is already published, so the
+    # offline self-test runs first. It needs neither a repo nor the network.
+    - name: Test version script
+      run: bash .github/scripts/compute-version-test.sh
+
     # Releases count up from the existing v2.3.5.N-plus tags; PR builds reuse the
     # last released N with a -pr.<sha> marker. run_number is not involved, so PR
-    # runs can no longer punch holes into the release numbering. The script is
-    # covered by .github/scripts/compute-version-test.sh (plain bash, no repo needed).
+    # runs can no longer punch holes into the release numbering.
     - name: Compute version
       id: version
       env:

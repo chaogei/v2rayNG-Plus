@@ -38,11 +38,10 @@ open class FmtBase {
      * Extracts query parameters from a URI.
      *
      * @param uri the URI to extract query parameters from
-     * @return a map of query parameters
+     * @return a map of query parameters, empty when the URI carries no query
      */
     fun getQueryParam(uri: URI): Map<String, String> {
-        return uri.rawQuery.split("&")
-            .associate { it.split("=").let { (k, v) -> k to Utils.decodeURIComponent(v) } }
+        return UriQueryParser.parse(uri.rawQuery, Utils::decodeURIComponent)
     }
 
     /**

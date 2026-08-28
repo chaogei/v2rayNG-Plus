@@ -85,6 +85,16 @@ fun MainBottomBar(
             animationSpec = tween(200),
             label = "fabColor"
         )
+        // The running FAB is painted with the scheme's secondary, which is a light
+        // color in dark mode and can be anything at all under Material You. A
+        // hardcoded white icon disappeared on it; onSecondary is the color the
+        // scheme guarantees to be readable there. The idle gray is a fixed
+        // constant, so it keeps its fixed white.
+        val fabContentColor by animateColorAsState(
+            targetValue = if (isRunning) MaterialTheme.colorScheme.onSecondary else Color.White,
+            animationSpec = tween(200),
+            label = "fabContentColor"
+        )
         var lastToggleAt by remember { mutableLongStateOf(0L) }
         FloatingActionButton(
             onClick = {
@@ -113,7 +123,7 @@ fun MainBottomBar(
                         else -> R.string.acc_start
                     }
                 ),
-                tint = Color.White,
+                tint = fabContentColor,
                 modifier = Modifier.size(24.dp)
             )
         }

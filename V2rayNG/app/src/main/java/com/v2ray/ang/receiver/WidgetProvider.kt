@@ -52,10 +52,31 @@ class WidgetProvider : AppWidgetProvider() {
             remoteViews.setInt(R.id.image_switch, "setImageResource", R.drawable.ic_play_24dp)
             remoteViews.setInt(R.id.layout_background, "setBackgroundResource", R.drawable.ic_rounded_corner_inactive)
         }
+        // The widget is a single unlabelled image, so a screen reader announced
+        // nothing at all. Name what the tap does and, like the tile and the
+        // notification, say "direct" instead of a node name when there is none.
+        remoteViews.setContentDescription(R.id.layout_switch, accessibilityLabel(context, isRunning))
 
         for (appWidgetId in appWidgetIds) {
             appWidgetManager.updateAppWidget(appWidgetId, remoteViews)
         }
+    }
+
+    private fun accessibilityLabel(context: Context, isRunning: Boolean): String {
+        if (!isRunning) return context.getString(R.string.acc_widget_stopped)
+        val name = CoreServiceManager.getRunningServerName()
+            .ifEmpty { context.getString(R.string.title_local_proxy_direct) }
+        return context.getString(R.string.acc_widget_running, name)
+    }
+
+    private fun refresh(context: Context, isRunning: Boolean) {
+        val manager = AppWidgetManager.getInstance(context) ?: return
+        updateWidgetBackground(
+            context,
+            manager,
+            manager.getAppWidgetIds(ComponentName(context, WidgetProvider::class.java)),
+            isRunning
+        )
     }
 
     /**
@@ -68,28 +89,24 @@ class WidgetProvider : AppWidgetProvider() {
     override fun onReceive(context: Context, intent: Intent) {
         super.onReceive(context, intent)
         if (AppConfig.BROADCAST_ACTION_WIDGET_CLICK == intent.action) {
-            if (CoreServiceManager.isRunning()) {
+            // Nothing broadcasts when the daemon process is killed, so a widget can
+            // sit on "running" indefinitely. The tap already acted on the real state;
+            // repaint from it too instead of waiting for a state message that a
+            // stopped core will never send.
+            val nowRunning = if (CoreServiceManager.isRunning()) {
                 LauncherManager.stopService(context)
+                false
             } else {
                 LauncherManager.startServiceFromToggle(context)
             }
+            refresh(context, nowRunning)
         } else if (AppConfig.BROADCAST_ACTION_ACTIVITY == intent.action) {
-            AppWidgetManager.getInstance(context)?.let { manager ->
-                when (intent.getIntExtra("key", 0)) {
-                    AppConfig.MSG_STATE_RUNNING, AppConfig.MSG_STATE_START_SUCCESS -> {
-                        updateWidgetBackground(
-                            context, manager, manager.getAppWidgetIds(ComponentName(context, WidgetProvider::class.java)),
-                            true
-                        )
-                    }
+            when (intent.getIntExtra("key", 0)) {
+                AppConfig.MSG_STATE_RUNNING, AppConfig.MSG_STATE_START_SUCCESS ->
+                    refresh(context, true)
 
-                    AppConfig.MSG_STATE_NOT_RUNNING, AppConfig.MSG_STATE_START_FAILURE, AppConfig.MSG_STATE_STOP_SUCCESS -> {
-                        updateWidgetBackground(
-                            context, manager, manager.getAppWidgetIds(ComponentName(context, WidgetProvider::class.java)),
-                            false
-                        )
-                    }
-                }
+                AppConfig.MSG_STATE_NOT_RUNNING, AppConfig.MSG_STATE_START_FAILURE, AppConfig.MSG_STATE_STOP_SUCCESS ->
+                    refresh(context, false)
             }
         }
     }
