@@ -1,3 +1,18 @@
+# Scope is deliberate: GitHub Actions only.
+#
+# The gradle ecosystem is NOT enabled and no renovate config exists. AGP,
+# Kotlin, KSP and the Compose BOM move as one coupled matrix, and CI here can
+# only prove that a change compiles - there is no device or UI test matrix to
+# validate an automatic bump against. On top of that every push to master
+# publishes a Release (see .github/workflows/build.yml), so a bot producing a
+# steady stream of dependency PRs would feed unverified changes straight into
+# the release pipeline. Gradle-side upgrades are therefore a manual, explained
+# change to V2rayNG/app/build.gradle.kts.
+#
+# The core itself is not a gradle dependency either: libv2ray.aar is downloaded
+# from the AndroidLibXrayLite tag of the submodule, which no dependency bot
+# tracks. See docs/cmfa_lessons_zh.md section 4 for the full comparison with
+# ClashMetaForAndroid's automatic "Update Dependencies" PRs.
 version: 2
 updates:
   - package-ecosystem: "github-actions"

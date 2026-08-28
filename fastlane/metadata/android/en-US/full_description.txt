@@ -1,5 +1,7 @@
 <p>A V2Ray client for Android, support <a href="https://github.com/XTLS/Xray-core">Xray core</a> and <a href="https://github.com/v2fly/v2ray-core">v2fly core</a></p>
 
+<p>This build is <a href="https://github.com/chaogei/v2rayNG-Plus">chaogei/v2rayNG-Plus</a>, a community fork of <a href="https://github.com/2dust/v2rayNG">2dust/v2rayNG</a> focused on fully configurable local inbounds (mixed / SOCKS / HTTP, listen address, optional authentication) and a local-proxy-only direct mode; it is not affiliated with the upstream project and its in-app update checker points at the fork's own releases.</p>
+
 <h3>Telegram Channel</h3>
 
 <p><a href="https://t.me/github_2dust">github_2dust</a></p>
